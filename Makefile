@@ -1,4 +1,4 @@
-SRC=xv6-riscv-src/
+SRC=../xv6-riscv/
 
 T=latex.out
 
@@ -14,7 +14,7 @@ $(T)/%.tex: %.tex | src
 
 src:
 	if [ ! -d $(SRC) ]; then \
-		git clone git@github.com:mit-pdos/xv6-riscv.git $(SRC) ; \
+		git clone https://github.com/Skylands-Research-Institute/xv6-riscv.git $(SRC) ; \
 	else \
 		git -C $(SRC) pull ; \
 	fi; \
@@ -38,7 +38,7 @@ clean:
 	rm -f book.aux book.idx book.ilg book.ind book.log\
 	 	book.toc book.bbl book.blg book.out
 	rm -rf latex.out
-	rm -rf $(SRC)
+	# Intentionally do not remove $(SRC) because it may point outside this repo.
 
 spell:
 	@ for i in $(SPELLTEX); do aspell --mode=tex -p ./aspell.words -c $$i; done
