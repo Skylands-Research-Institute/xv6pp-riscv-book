@@ -3,7 +3,7 @@
 echo This script takes a minute to run.  Be patient. 1>&2
 
 LC_CTYPE=C export LC_CTYPE
-SRC=../xv6-riscv-src
+SRC=${SRC:-../xv6-riscv}
 
 # pad stdin to multiple of 120 lines
 pad()
