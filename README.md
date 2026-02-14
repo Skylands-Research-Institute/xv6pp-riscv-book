@@ -1,3 +1,5 @@
+Derived from MIT PDOS xv6-riscv-book (https://github.com/mit-pdos/xv6-riscv-book), used under its license.
+
 This edition of the book has been converted to LaTeX.
 In order to build it, ensure you have a TeX distribution that contains
 the `pdflatex` command. With that, you should be able to build the book
