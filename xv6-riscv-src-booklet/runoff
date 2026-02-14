@@ -232,45 +232,73 @@ awk '
 	do
 		../pr.pl -h "xv6/$i" $i
 	done
-) >all.txt
+ ) >all.txt
 
-rm -f ../xv6-src-booklet.pdf
-if command -v mpage >/dev/null 2>&1
+rm -f ../xv6-src-booklet.pdf all.ps all-linear.pdf txt2ps.awk
+
+if ! command -v ps2pdf >/dev/null 2>&1
 then
-	mpage -m50t50b -o -bLetter -T -t -2 -FCourier -L60 all.txt >all.ps
-	grep Pages: all.ps
-else
-	echo "warning: mpage not found; generating placeholder xv6-src-booklet.pdf" 1>&2
-	cat >all.ps <<'EOF'
-%!PS-Adobe-3.0
-%%Pages: 1
-%%BoundingBox: 0 0 612 792
-/Courier findfont 12 scalefont setfont
-72 720 moveto
-(xv6 booklet build: mpage not found, full booklet layout skipped.) show
-72 700 moveto
-(Install mpage and rebuild to generate the full xv6-src-booklet.pdf.) show
-showpage
-%%EOF
-EOF
+	echo "ps2pdf not found; install ghostscript to build xv6-src-booklet.pdf" 1>&2
+	exit 1
+fi
+if ! command -v pdfjam >/dev/null 2>&1
+then
+	echo "pdfjam not found; install pdfjam/texlive-extra-utils to build xv6-src-booklet.pdf" 1>&2
+	exit 1
 fi
 
-# if we have the nice font, use it
-nicefont=LucidaSans-Typewriter83
-if [ ! -f ../$nicefont ]
-then
-	if git cat-file blob font:$nicefont > ../$nicefont~; then
-		mv ../$nicefont~ ../$nicefont
-	fi
-fi
-if [ -f ../$nicefont ]
-then
-	echo nicefont
-	(sed 1q all.ps; cat ../$nicefont; sed "1d; s/Courier/$nicefont/" all.ps) >allf.ps
-else
-	echo ugly font!
-	cp all.ps allf.ps
-fi
-ps2pdf allf.ps ../xv6-src-booklet.pdf
+cat >txt2ps.awk <<'AWK'
+function esc(s,  t) {
+	t = s
+	gsub(/\\/, "\\\\", t)
+	gsub(/\(/, "\\(", t)
+	gsub(/\)/, "\\)", t)
+	return t
+}
+function newpage() {
+	if (page > 0)
+		print "showpage"
+	page++
+	y = 756
+	print "%%Page: " page " " page
+}
+BEGIN {
+	print "%!PS-Adobe-3.0"
+	print "%%BoundingBox: 0 0 612 792"
+	print "%%EndComments"
+	print "/Courier findfont 8 scalefont setfont"
+	page = 0
+	newpage()
+}
+{
+	line = $0
+	while (1) {
+		idx = index(line, sprintf("%c", 12))
+		if (idx == 0)
+			break
+		prefix = substr(line, 1, idx-1)
+		if (length(prefix) > 0) {
+			if (y < 36)
+				newpage()
+			print "36 " y " moveto (" esc(prefix) ") show"
+			y -= 12
+		}
+		newpage()
+		line = substr(line, idx+1)
+	}
+	if (y < 36)
+		newpage()
+	print "36 " y " moveto (" esc(line) ") show"
+	y -= 12
+}
+END {
+	print "showpage"
+	print "%%EOF"
+}
+AWK
+
+awk -f txt2ps.awk all.txt >all.ps
+ps2pdf all.ps all-linear.pdf
+pdfjam --booklet true all-linear.pdf --outfile ../xv6-src-booklet.pdf >/dev/null
 # cd ..
 # pdftops xv6.pdf xv6.ps

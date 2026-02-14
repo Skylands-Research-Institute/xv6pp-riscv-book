@@ -10,5 +10,5 @@ Figures are drawn using `inkscape`.
 
 
 Build notes:
-- `xv6-riscv-src-booklet/runoff` uses `mpage` for booklet page layout. If `mpage` is unavailable, the build now emits a small placeholder `xv6-src-booklet.pdf` and continues.
+- `xv6-riscv-src-booklet/runoff` uses `pdfjam` (plus `ps2pdf`) for booklet layout, so install `pdfjam` and Ghostscript before building.
 - Full PDF build also needs LaTeX packages used by `book.tex` (for example `listings` and `xcolor`).
