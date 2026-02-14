@@ -1,9 +1,13 @@
-SRC=xv6-riscv-src/
+SRC=../xv6-riscv/
 
 T=latex.out
 
 TEX=$(patsubst %,$(T)/%,$(wildcard *.tex))
 SPELLTEX=$(wildcard *.tex)
+
+# Convert all SVG figures to PDFs before LaTeX runs
+SVGFIGS := $(wildcard fig/*.svg)
+PDFFIGS := $(SVGFIGS:.svg=.pdf)
 
 all: book.pdf
 .PHONY: all src clean
@@ -14,17 +18,17 @@ $(T)/%.tex: %.tex | src
 
 src:
 	if [ ! -d $(SRC) ]; then \
-		git clone git@github.com:mit-pdos/xv6-riscv.git $(SRC) ; \
+		git clone https://github.com/Skylands-Research-Institute/xv6-riscv.git $(SRC) ; \
 	else \
 		git -C $(SRC) pull ; \
 	fi; \
 	true
 
 booklet: src
-	(cd xv6-riscv-src-booklet; make)
+	$(MAKE) -C xv6-riscv-src-booklet SRC=$(abspath $(SRC))
 	mv xv6-riscv-src-booklet/xv6-src-booklet.pdf .
 
-book.pdf: booklet book.tex $(TEX)
+book.pdf: booklet book.tex $(TEX) $(PDFFIGS)
 	pdflatex book.tex
 	bibtex book
 	pdflatex book.tex
@@ -38,7 +42,7 @@ clean:
 	rm -f book.aux book.idx book.ilg book.ind book.log\
 	 	book.toc book.bbl book.blg book.out
 	rm -rf latex.out
-	rm -rf $(SRC)
+	# Intentionally do not remove $(SRC) because it may point outside this repo.
 
 spell:
 	@ for i in $(SPELLTEX); do aspell --mode=tex -p ./aspell.words -c $$i; done
@@ -46,3 +50,9 @@ spell:
 	@ for i in $(SPELLTEX); do perl bin/capital.py $$i; done
 	@ ( head -1 aspell.words ; tail -n +2 aspell.words | sort ) > aspell.words~
 	@ mv aspell.words~ aspell.words
+
+SVG2PDF = rsvg-convert -f pdf -o
+
+fig/%.pdf: fig/%.svg
+	$(SVG2PDF) $@ $<
+

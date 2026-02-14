@@ -7,3 +7,8 @@ by running `make`, which will clone the OS itself and build the book
 to `book.pdf` in the main directory.
 
 Figures are drawn using `inkscape`.
+
+
+Build notes:
+- `xv6-riscv-src-booklet/runoff` uses `pdfjam` (plus `ps2pdf`) for booklet layout, so install `pdfjam` and Ghostscript before building.
+- Full PDF build also needs LaTeX packages used by `book.tex` (for example `listings` and `xcolor`).
