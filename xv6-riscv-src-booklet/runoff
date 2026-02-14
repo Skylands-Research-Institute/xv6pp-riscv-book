@@ -3,7 +3,7 @@
 echo This script takes a minute to run.  Be patient. 1>&2
 
 LC_CTYPE=C export LC_CTYPE
-SRC=${SRC:-../xv6-riscv}
+SRC=${SRC:-../../xv6-riscv}
 
 # pad stdin to multiple of 120 lines
 pad()
@@ -16,7 +16,14 @@ mkdir -p fmt/kernel
 mkdir -p fmt/user
 rm -f fmt/kernel/*
 rm -f fmt/user/*
-cp $SRC/README fmt
+if [ -f "$SRC/README" ]; then
+	cp "$SRC/README" fmt/README
+elif [ -f "$SRC/README.md" ]; then
+	cp "$SRC/README.md" fmt/README
+else
+	echo "missing README or README.md in $SRC" 1>&2
+	exit 1
+fi
 echo > fmt/blank
 files=`grep -v '^#' runoff.list | awk '{print $1}'`
 n=99

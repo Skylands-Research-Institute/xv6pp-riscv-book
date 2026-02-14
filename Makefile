@@ -21,7 +21,7 @@ src:
 	true
 
 booklet: src
-	(cd xv6-riscv-src-booklet; make)
+	$(MAKE) -C xv6-riscv-src-booklet SRC=$(abspath $(SRC))
 	mv xv6-riscv-src-booklet/xv6-src-booklet.pdf .
 
 book.pdf: booklet book.tex $(TEX)
