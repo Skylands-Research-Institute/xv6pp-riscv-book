@@ -1,39 +1,35 @@
 \chapter*{Foreword and acknowledgments}
 
+This text accompanies \textit{xv6++}, an object-oriented refactoring of
+the xv6 teaching operating system.  The original xv6 text and kernel
+were developed for operating systems courses at MIT by Russ Cox,
+Frans Kaashoek, and Robert Morris.  Xv6 is modeled on Dennis
+Ritchie's and Ken Thompson's Unix Version 6 (v6)~\cite{unix}.  It
+loosely follows the structure and style of v6, but is implemented in
+ANSI C~\cite{kernighan} for a multi-core RISC-V~\cite{riscv} system.
 
-This is a draft text intended for a class on operating systems. It
-explains the main concepts of operating systems by studying an example
-kernel, named xv6.  Xv6 is modeled on Dennis Ritchie's and
-Ken Thompson's Unix Version 6 (v6)~\cite{unix}.  Xv6 loosely follows the structure
-and style of v6, but is implemented in ANSI C~\cite{kernighan} for 
-a multi-core RISC-V~\cite{riscv}.
+The xv6++ edition builds upon the xv6 RISC-V source and text,
+reconstructing the kernel using modern C++ techniques in order to
+explore object-oriented design, encapsulation, and modularity in
+operating system implementation.  The original xv6 source and book are
+available at \url{https://github.com/mit-pdos/xv6-riscv} and
+\url{https://pdos.csail.mit.edu/6.1810}.
 
-This text should be read along with the source code for xv6, an
-approach inspired by John Lions' Commentary on UNIX 6th
-Edition~\cite{lions}; the text has hyperlinks to the source code at
-\url{https://github.com/mit-pdos/xv6-riscv}. See
-\url{https://pdos.csail.mit.edu/6.1810} for additional pointers to
-on-line resources for v6 and xv6, including several lab assignments
-using xv6.
+The xv6++ kernel and accompanying materials are available at
+\url{https://github.com/Skylands-Research-Institute/xv6pp-riscv}.
+This edition is used in COMS221 Operating Systems at Sussex County
+Community College.
 
-We have used this text in 6.828 and 6.1810, the operating system
-classes at MIT.  We thank the faculty, teaching assistants, and
-students of those classes who have all directly or indirectly
-contributed to xv6.  In particular, we would like to thank Adam Belay,
-Austin Clements, and Nickolai Zeldovich.  Finally, we would like to
-thank people who emailed us bugs in the text or suggestions for
-improvements: Abutalib Aghayev, Sebastian Boehm, brandb97, Anton
-Burtsev, Raphael Carvalho, Tej Chajed,Brendan Davidson, Rasit
-Eskicioglu, Color Fuzzy, Wojciech Gac, Giuseppe, Tao Guo, Haibo Hao,
-Naoki Hayama, Chris Henderson, Robert Hilderman, Eden Hochbaum,
-Wolfgang Keller, Paweł Kraszewski, Henry Laih, Jin Li, Austin Liew,
-lyazj@github.com, Pavan Maddamsetti, Jacek Masiulaniec, Michael
-McConville, m3hm00d, Mes0903, miguelgvieira, Mark Morrissey, Muhammed Mourad,
-Harry Pan, Harry Porter, Siyuan Qian, Zhefeng Qiao, Askar Safin,
-Salman Shah, Huang Sha, Vikram Shenoy, Adeodato Simó, Ruslan
-Savchenko, Pawel Szczurko, Warren Toomey, tyfkda, tzerbib, Vanush
-Vaswani, Chen Wang, Xi Wang, and Zou Chang Wei, Sam Whitlock, Qiongsi Wu,
-LucyShawYang, ykf1114@gmail.com, and Meng Zhou
+The original xv6 text has been used in MIT's 6.828 and 6.1810 operating
+systems courses.  The original authors thank the faculty, teaching
+assistants, and students of those classes who directly or indirectly
+contributed to xv6.  In particular, they acknowledge Adam Belay,
+Austin Clements, and Nickolai Zeldovich, as well as many individuals
+who provided bug reports and suggestions for improvement.
 
-If you spot errors or have suggestions for improvement, please send email to
-Frans Kaashoek and Robert Morris (kaashoek,rtm@csail.mit.edu).
+The development of xv6++ was supported in part by a grant from the
+Skylands Research Institute at Sussex County Community College.
+The author gratefully acknowledges this support.
+
+Any errors or omissions in this xv6++ edition are the responsibility
+of its author.
