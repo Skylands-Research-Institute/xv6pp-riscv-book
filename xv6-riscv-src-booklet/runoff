@@ -232,8 +232,28 @@ awk '
 	do
 		../pr.pl -h "xv6/$i" $i
 	done
-) | mpage -m50t50b -o -bLetter -T -t -2 -FCourier -L60 >all.ps
-grep Pages: all.ps
+) >all.txt
+
+rm -f ../xv6-src-booklet.pdf
+if command -v mpage >/dev/null 2>&1
+then
+	mpage -m50t50b -o -bLetter -T -t -2 -FCourier -L60 all.txt >all.ps
+	grep Pages: all.ps
+else
+	echo "warning: mpage not found; generating placeholder xv6-src-booklet.pdf" 1>&2
+	cat >all.ps <<'EOF'
+%!PS-Adobe-3.0
+%%Pages: 1
+%%BoundingBox: 0 0 612 792
+/Courier findfont 12 scalefont setfont
+72 720 moveto
+(xv6 booklet build: mpage not found, full booklet layout skipped.) show
+72 700 moveto
+(Install mpage and rebuild to generate the full xv6-src-booklet.pdf.) show
+showpage
+%%EOF
+EOF
+fi
 
 # if we have the nice font, use it
 nicefont=LucidaSans-Typewriter83
