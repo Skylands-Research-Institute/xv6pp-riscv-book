@@ -16,7 +16,13 @@ def fmt_line(i):
    
 def line_number(path, i, line):
    if path == xv6booklet:
-      return int(line[0:4])
+      # minimal robustness: tolerate empty/malformed lines in booklet fmt files
+      if line == None or len(line) < 4:
+         return i
+      try:
+         return int(line[0:4])
+      except ValueError:
+         return i
    else:
       return i
 
@@ -24,7 +30,11 @@ def lookup_fileref_booklet(fname):
    p = xv6booklet
    try:
       with open(p +'/'+fname) as f:
-         line = f.readline()         
+         line = f.readline()
+         # minimal robustness: tolerate empty files
+         if not line:
+            print("error: empty booklet file %s" % fname, file=sys.stderr)
+            return None
          return line_number(p, 1, line)
    except IOError:
       print("error: cannot open %s" % fname, file=sys.stderr)
@@ -97,7 +107,9 @@ def lineref(l):
       f = m.groups()[0]
       n0 = lookup_fileref_booklet(f)
       print("fileref", f, n0, file=sys.stderr)
-      l = p.sub(r'\\showfileref{%s}{%s}' % (f, fmt_line(n0)), l)
+      # minimal robustness: only substitute if we got a valid booklet line number
+      if n0 != None:
+         l = p.sub(r'\\showfileref{%s}{%s}' % (f, fmt_line(n0)), l)
       print(l, end="")
       return
    # file:/pattern/delta,pattern/delta
@@ -124,3 +136,4 @@ with open(sys.argv[1]) as f:
    while line:
       lineref(line)
       line = f.readline()
+

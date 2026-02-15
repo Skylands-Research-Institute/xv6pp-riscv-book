@@ -16,6 +16,7 @@
 \usepackage{gnuplot-lua-tikz}
 
 \usepackage{hyperref}  % should be last
+\usepackage{float}
 
 % One space after periods
 \frenchspacing
@@ -28,7 +29,7 @@
 \lstset{escapeinside={(*@}{@*)}}
 \lstset{xleftmargin=5.0ex}
 
-\newcommand{\github}{https://github.com/mit-pdos/xv6-riscv/blob/riscv/}
+\newcommand{\github}{https://github.com/Skylands-Research-Institute/xv6pp-riscv/blob/main/}
 
 \newcommand{\fileref}[1]{\small{\textcolor{red}{(#1)}}}
 \newcommand{\lineref}[2]{\small{\textcolor{red}{(#1:#2)}}}
@@ -37,9 +38,9 @@
 % MFK: this (or file:) gives a security alert
 % \newcommand{\showlineref}[3]{\href{run:./xv6-riscv-src/#1:#2}{\small{(\textcolor{blue}{#3})}}}
 
-\newcommand{\showfileref}[2]{\href{\github/#1}{\small{(\textcolor{blue}{#2})}}}
-\newcommand{\showlineref}[3]{\href{\github/#1\#L#2}{\small{(\textcolor{blue}{#3})}}}
-\newcommand{\showlinerefs}[5]{\href{\github/#1\#L#2-L#3}{\small\textcolor{blue}{(#4-#5)}}}
+\newcommand{\showfileref}[2]{\href{\github/#1}{\small{(\textcolor{blue}{\texttt{#1}})}}}
+\newcommand{\showlineref}[3]{\href{\github/#1\#L#2}{\small{(\textcolor{blue}{\texttt{#1:#2}})}}}
+\newcommand{\showlinerefs}[5]{\href{\github/#1\#L#2-L#3}{\small{\textcolor{blue}{(\texttt{#1:#2-#3})}}}}
 
 \newcommand{\indextext}[1]{\textit{#1}\index{#1}}
 \newcommand{\indextextx}[1]{{#1}\index{#1}}

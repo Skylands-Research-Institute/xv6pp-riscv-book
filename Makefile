@@ -1,4 +1,4 @@
-SRC=../xv6-riscv/
+SRC=../xv6pp-riscv/
 
 T=latex.out
 
@@ -18,7 +18,7 @@ $(T)/%.tex: %.tex | src
 
 src:
 	if [ ! -d $(SRC) ]; then \
-		git clone https://github.com/Skylands-Research-Institute/xv6-riscv.git $(SRC) ; \
+		git clone https://github.com/Skylands-Research-Institute/xv6pp-riscv.git $(SRC) ; \
 	else \
 		git -C $(SRC) pull ; \
 	fi; \
