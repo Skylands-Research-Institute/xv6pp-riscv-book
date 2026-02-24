@@ -39,9 +39,9 @@ organized to achieve these three requirements.  It turns out there are
 many ways to do so, but this text focuses on mainstream designs
 centered around a \indextext{monolithic kernel}, which is used by many
 Unix operating systems.  This chapter also provides an overview of an
-xv6 process, the unit of isolation in xv6.
+xv6++ process, the unit of isolation in xv6++.
 
-Xv6 runs on a \indextext{multi-core}\footnote{
+Xv6++ runs on a \indextext{multi-core}\footnote{
 By ``multi-core'' this text means multiple CPUs that share memory but execute
 in parallel, each with its own set of registers.
 This text sometimes uses the term
@@ -50,7 +50,7 @@ though multiprocessor can also refer more specifically to a computer with
 several distinct processor chips.} RISC-V microprocessor,
 and much of its low-level
 functionality (for example, its process implementation) is specific to
-RISC-V.  RISC-V is a 64-bit CPU, and xv6 is written in ``LP64'' C,
+RISC-V.  RISC-V is a 64-bit CPU, and xv6++ is written primarily in ``LP64'' C++,
 which means long (L) and pointers (P) in the C programming language
 are 64 bits, but an {\tt int} is 32 bits.  This book assumes the reader has done
 a bit of machine-level programming on some architecture, and will
@@ -63,7 +63,7 @@ You may also refer to
 Atlas''~\cite{riscv}.
 
 The CPU in a complete computer is surrounded by support hardware, much
-of it in the form of I/O interfaces. Xv6 is written for the support
+of it in the form of I/O interfaces. Xv6++ is written for the support
 hardware simulated by qemu's ``-machine virt'' option. This includes
 RAM, a ROM containing boot code, a serial connection to the user's
 keyboard/screen, and a disk for storage.
@@ -162,7 +162,7 @@ what code can do:
 \indextext{user mode}.
 Instructions executing in machine mode have full privilege; a
 CPU starts in machine mode.  Machine mode is mostly intended for
-setting up the computer during boot.  Xv6 executes briefly in machine mode and
+setting up the computer during boot.  Xv6++ executes briefly in machine mode and
 then changes to supervisor mode.
 
 In supervisor mode the CPU is allowed to execute
@@ -297,14 +297,14 @@ page tables, they handle interrupts, they support processes, they use
 locks for concurrency control, they implement a file system,
 etc. This book focuses on these core ideas.
 
-Xv6 is
+Xv6++ is
 implemented as a monolithic kernel, like most Unix operating systems.
-Thus, the xv6 kernel interface corresponds to the operating system
+Thus, the xv6++ kernel interface corresponds to the operating system
 interface, and the kernel implements the complete operating system.  Since
-xv6 doesn't provide many services, its kernel is smaller than some
-microkernels, but conceptually xv6 is monolithic.
+xv6++ doesn't provide many services, its kernel is smaller than some
+microkernels, but conceptually xv6++ is monolithic.
 
-\section{Code: xv6 organization}
+\section{Code: xv6++ organization}
 
 \begin{figure}[H]
 \center
@@ -349,7 +349,7 @@ Locks \& utilities & spin\_lock.cpp & Spin locks. \\
 \label{fig:source}
 \end{figure}
 
-The xv6 kernel source is in the {\tt kernel/} sub-directory.
+The xv6++ kernel source is in the {\tt kernel/} sub-directory.
 Figure~\ref{fig:source} lists the files, divided into the
 major areas of kernel responsibility: starting the
 system (booting), creating
@@ -362,7 +362,7 @@ file-system.
 \section{Process overview}
 %%
 
-The unit of isolation in xv6 (as in other Unix operating systems) is a
+The unit of isolation in xv6++ (as in other Unix operating systems) is a
 \indextext{process}.
 The process abstraction prevents one process from wrecking or spying on
 another process's memory, CPU, file descriptors, etc.  It also prevents a process
@@ -382,7 +382,7 @@ which other processes cannot read or write.
 A process also provides the program with what appears to be its own
 CPU to execute the program's instructions.
 
-Xv6 uses page tables (which are implemented by hardware) to give each process
+Xv6++ uses page tables (which are implemented by hardware) to give each process
 its own address space. The RISC-V page table
 translates (or ``maps'') a
 \indextext{virtual address}
@@ -397,7 +397,7 @@ translates (or ``maps'') a
 \label{fig:as}
 \end{figure}
 
-Xv6 maintains a separate page table for each process that defines that process's
+Xv6++ maintains a separate page table for each process that defines that process's
 address space. As illustrated in
 Figure~\ref{fig:as},
 an address space includes the process's
@@ -411,19 +411,19 @@ maximum size of a process's address space:
 pointers on the RISC-V are 64 bits wide;
 the hardware uses only the low 39 bits when
 looking up virtual addresses in page tables;
-and xv6 uses only 38 of those 39 bits.
+and xv6++ uses only 38 of those 39 bits.
 Thus, the maximum address is $2^{38}-1$ =
 0x3fffffffff, which is \lstinline{MAXVA} (see \texttt{kernel/riscv.h}).
-At the top of the address space xv6 places
+At the top of the address space xv6++ places
 a \indextext{trampoline} page (4096 bytes)
-and a \indextext{trapframe} page.  Xv6 uses these two pages
+and a \indextext{trapframe} page.  Xv6++ uses these two pages
 to transition into the kernel and back;
 the trampoline page contains the code to transition in and out
 of the kernel, and the trapframe is where the kernel saves
 the process's user registers,
 as Chapter~\ref{CH:TRAP} explains.
 
-The xv6 kernel maintains many pieces of state for each process,
+The xv6++ kernel maintains many pieces of state for each process,
 which it gathers into a
 \indexcode{struct proc}
 (see \texttt{kernel/proc.h}).
@@ -437,7 +437,7 @@ structure; for example,
 \indexcode{p->pagetable} is a pointer to the process's page table.
 
 At this point, please read \texttt{kernel/proc.h}, which defines {\tt
-  struct proc}. The xv6 code is more important for you to understand
+  struct proc}. The xv6++ code is more important for you to understand
 than this book; you should prioritize the code, and consult this book
 as needed to clarify the code. The purpose of some of the code may not
 be apparent at first, but further reading and searching the code will
@@ -488,7 +488,7 @@ to run, currently running on a CPU, waiting for I/O, or exiting.
 \indexcode{p->pagetable}
 holds the process's page table, in the format
 that the RISC-V hardware expects.
-Xv6 causes the paging hardware to use a process's
+Xv6++ causes the paging hardware to use a process's
 \lstinline{p->pagetable}
 when executing that process in user space.
 A process's page table also serves as the record of the
@@ -497,14 +497,14 @@ memory.
 
 In summary, a process bundles two design ideas: an address space to
 give a process the illusion of its own memory, and a thread to give
-the process the illusion of its own CPU.  In xv6, a process consists
+the process the illusion of its own CPU.  In xv6++, a process consists
 of one address space and one thread.  In real operating systems a
 process may have more than one thread to take advantage of multiple CPUs.
 
 %%
-\section{Code: starting xv6, the first process and system call}
+\section{Code: starting xv6++, the first process and system call}
 %%
-To make xv6 more concrete, we'll outline how the kernel starts and
+To make xv6++ more concrete, we'll outline how the kernel starts and
 runs the first process. The subsequent chapters will describe the
 mechanisms that show up in this overview in more detail.
 Please read \texttt{kernel/entry.S}, \texttt{kernel/start.c},
@@ -512,7 +512,7 @@ Please read \texttt{kernel/entry.S}, \texttt{kernel/start.c},
 
 When the RISC-V computer powers on, it initializes
 itself and runs a boot loader which is stored in read-only
-memory.  The boot loader copies the xv6 kernel into memory
+memory.  The boot loader copies the xv6++ kernel into memory
 at physical address
 \texttt{0x80000000}.
 The reason it places the kernel at
@@ -523,15 +523,15 @@ is because the address range
 \texttt{0x0:0x80000000}
 contains I/O devices.
 
-Then the boot loader jumps to xv6 starting at
+Then the boot loader jumps to xv6++ starting at
 \indexcode{_entry}
 (see \texttt{kernel/entry.S}).
 The RISC-V starts with paging hardware disabled:
 virtual addresses map directly to physical addresses.
 The instructions at
 \lstinline{_entry}
-set up a stack so that xv6 can run C code.
-Xv6 declares space for this stack,
+set up a stack so that xv6++ can run C code.
+Xv6++ declares space for this stack,
 \lstinline{stack0},
 in the file
 \lstinline{start.c}
@@ -660,7 +660,7 @@ the operating system, and in some operating systems privileged user
 code can insert new code into the kernel (as with Linux's loadable
 kernel modules and eBPF).
 
-As a partial defense against kernel bugs, xv6 code includes checks for
+As a partial defense against kernel bugs, xv6++ code includes checks for
 inconsistencies and unrecoverable errors, and will ``panic'' in
 response, by calling {\tt panic()}. This function prints an error
 message and halts the system. Panicking is not desirable, but is
@@ -677,10 +677,10 @@ underlying code bug.
 %%
 
 Most operating systems have adopted the process concept, and most
-processes look similar to xv6's.  Modern operating systems, however,
+processes look similar to xv6++'s.  Modern operating systems, however,
 support several threads within a process, to allow a single process to
 exploit multiple CPUs.  Supporting multiple threads in a
-process involves quite a bit of machinery that xv6 doesn't have,
+process involves quite a bit of machinery that xv6++ doesn't have,
 often including interface changes (e.g., Linux's
 \lstinline{clone},
 a variant of
@@ -693,7 +693,7 @@ a process threads share.
 
 \begin{enumerate}
 
-\item Add a system call to xv6
+\item Add a system call to xv6++
   that returns the amount of free memory available.
 
 % break *0x3ffffff000
