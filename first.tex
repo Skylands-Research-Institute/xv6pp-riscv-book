@@ -426,7 +426,7 @@ as Chapter~\ref{CH:TRAP} explains.
 The xv6++ kernel maintains many pieces of state for each process,
 which it gathers into a
 \indexcode{struct proc}
-(see \texttt{kernel/proc.h}).
+(see \texttt{kernel/process.h}).
 A process's most important pieces of kernel state are its
 page table, its kernel stack, and its run state.
 We'll use the notation
@@ -436,7 +436,7 @@ to refer to elements of the
 structure; for example,
 \indexcode{p->pagetable} is a pointer to the process's page table.
 
-At this point, please read \texttt{kernel/proc.h}, which defines {\tt
+At this point, please read \texttt{kernel/process.h}, which defines {\tt
   struct proc}. The xv6++ code is more important for you to understand
 than this book; you should prioritize the code, and consult this book
 as needed to clarify the code. The purpose of some of the code may not
@@ -508,7 +508,7 @@ To make xv6++ more concrete, we'll outline how the kernel starts and
 runs the first process. The subsequent chapters will describe the
 mechanisms that show up in this overview in more detail.
 Please read \texttt{kernel/entry.S}, \texttt{kernel/start.c},
-\texttt{kernel/main.c}, and \texttt{user/init.c}.
+\texttt{kernel/main.cpp}, and \texttt{user/init.c}.
 
 When the RISC-V computer powers on, it initializes
 itself and runs a boot loader which is stored in read-only
@@ -559,7 +559,7 @@ Then {\tt start} uses the RISC-V {\tt mret}
 instruction to switch to supervisor mode and
 jump to
 \lstinline{main}
-(see \texttt{kernel/main.c}).
+(see \texttt{kernel/main.cpp}).
 {\tt mret} requires
 a bit of setup:
 {\tt start} sets the previous privilege mode to
@@ -582,14 +582,14 @@ to supervisor mode.
 
 After
 \lstinline{main}
-(see \texttt{kernel/main.c})
+(see \texttt{kernel/main.cpp})
 initializes several devices and subsystems,
 it creates the first process by calling
 \lstinline{userinit}
-(see \texttt{kernel/proc.c}).
+(see \texttt{kernel/process\_manager.cpp}).
 All newly created processes start executing in the kernel in
 \lstinline{forkret}
-(see \texttt{kernel/proc.c}).
+(see \texttt{kernel/process\_manager.cpp}).
 As a special case for the first process, {\tt forkret}
 calls {\tt kexec} to load the user program {\tt /init}.
 
