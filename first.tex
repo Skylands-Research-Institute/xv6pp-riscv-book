@@ -20,11 +20,11 @@ example,
 one might use the {\tt fork} and {\tt exec} system calls from
 Chapter~\ref{CH:UNIX}
 to start both a compiler and a text editor as processes.
-The operating system must 
-\indextext{time-share} 
+The operating system must
+\indextext{time-share}
 resources such as CPUs and memory among these processes.
 The operating system must also arrange for
-\indextext{isolation} 
+\indextext{isolation}
 between the processes.
 If one process has a bug and malfunctions,
 it shouldn't affect unrelated processes.
@@ -68,9 +68,9 @@ hardware simulated by qemu's ``-machine virt'' option. This includes
 RAM, a ROM containing boot code, a serial connection to the user's
 keyboard/screen, and a disk for storage.
 
-%% 
+%%
 \section{Abstracting physical resources}
-%% 
+%%
 
 The first question one might ask when encountering an operating system is why
 have it at all?  That is, one could implement the system calls in
@@ -86,8 +86,8 @@ The downside of this library approach is that, if there is more than one
 application running, the applications must be well-behaved.
 For example, each application must periodically give up the
 CPU so that other applications can run.
-Such a 
-\textit{cooperative} 
+Such a
+\textit{cooperative}
 time-sharing scheme may be OK if all applications trust each
 other and have no bugs. It's more typical for applications
 to not trust each other, and to have bugs, so one often wants
@@ -99,13 +99,13 @@ resources into services.  For example, Unix applications interact with storage
 only through the file system's
 \lstinline{open},
 \lstinline{read},
-\lstinline{write}, 
+\lstinline{write},
 and
 \lstinline{close}
 system calls,
-instead of reading and writing the disk directly. 
+instead of reading and writing the disk directly.
 This provides the application with the convenience of pathnames, and it allows
-the operating system (which provides the interface) to manage the disk. 
+the operating system (which provides the interface) to manage the disk.
 Even if isolation is not a concern,
 programs that interact intentionally (or just wish to keep
 out of each other's way) are likely to find a file system a more convenient
@@ -117,7 +117,7 @@ so that applications don't have to be
 aware of time-sharing.  This transparency allows the operating system to share
 CPUs even if some applications are in infinite loops.
 
-As another example, Unix processes use 
+As another example, Unix processes use
 \lstinline{exec}
 to build up their memory image, instead of directly interacting with physical
 memory.  This allows the operating system to decide where to place a process in
@@ -125,7 +125,7 @@ memory; if memory is tight, the operating system might even store some of
 a process's data on disk.
 \lstinline{exec}
 also provides
-users with the convenience of a file system to store executable program images.  
+users with the convenience of a file system to store executable program images.
 
 Many forms of interaction among Unix processes occur via file descriptors.
 Not only do file descriptors abstract away many details (e.g.,
@@ -141,9 +141,9 @@ the possibility of strong isolation.  The Unix interface
 is not the only way to abstract resources, but it has proved to be a good
 one.
 
-%% 
+%%
 \section{User mode, supervisor mode, and system calls}
-%% 
+%%
 
 Strong isolation requires a hard boundary between applications and the operating
 system.
@@ -165,7 +165,7 @@ CPU starts in machine mode.  Machine mode is mostly intended for
 setting up the computer during boot.  Xv6 executes briefly in machine mode and
 then changes to supervisor mode.
 
-In supervisor mode the CPU is allowed to execute 
+In supervisor mode the CPU is allowed to execute
 \indextext{privileged instructions}:
 for example, enabling and disabling interrupts,  reading and writing
 the register that holds the address of the page table, etc.
@@ -176,7 +176,7 @@ to special code in supervisor mode that can terminate the application.
 Figure~\ref{fig:os}
 in Chapter~\ref{CH:UNIX} illustrates this organization.  An application can
 execute only user-mode instructions (e.g., adding numbers, etc.) and is said to
-be running in 
+be running in
 \indextext{user space},
 while the software in supervisor mode can also execute privileged instructions and
 is said to be running in
@@ -202,12 +202,12 @@ transitions to supervisor mode; if the application could decide the kernel entry
 point, a malicious application could, for example, enter the kernel at a point where the
 validation of arguments is skipped.
 
-%% 
+%%
 \section{Kernel organization}
-%% 
+%%
 
 A key design question is what part of the operating
-system should run in supervisor mode. 
+system should run in supervisor mode.
 One possibility is that the entire operating system resides
 in the kernel, so that the implementations of all system calls
 run in supervisor mode.
@@ -221,11 +221,11 @@ doesn't have to divide code into parts that do and do not
 require supervisor privileges.
 Furthermore, it is easy for different parts of the operating system to
 cooperate, since they are parts of a single program.
-For example, a monolithic kernel might share a disk block cache 
-with the file system and the virtual memory system. 
+For example, a monolithic kernel might share a disk block cache
+with the file system and the virtual memory system.
 
 A downside is that monolithic kernels tend to grow large
-and complex, so that no one developer understands all of 
+and complex, so that no one developer understands all of
 the interactions between different parts of the code;
 this is a recipe for bugs. A bug in the kernel is particularly
 troublesome because it may cause the entire computer to crash,
@@ -255,11 +255,11 @@ file server, the kernel provides an inter-process communication
 mechanism to send messages from one
 user-mode process to another.  For example, if an application like the shell
 wants to read or write a file, it sends a message to the file server and waits
-for a response. 
+for a response.
 
 In a microkernel, the kernel interface consists of a few low-level
 functions for starting applications, sending messages,
-accessing device hardware, etc.  This organization allows the kernel to be 
+accessing device hardware, etc.  This organization allows the kernel to be
 relatively simple, as most of the operating system
 resides in user-level servers.
 
@@ -300,9 +300,9 @@ etc. This book focuses on these core ideas.
 Xv6 is
 implemented as a monolithic kernel, like most Unix operating systems.
 Thus, the xv6 kernel interface corresponds to the operating system
-interface, and the kernel implements the complete operating system.  Since 
+interface, and the kernel implements the complete operating system.  Since
 xv6 doesn't provide many services, its kernel is smaller than some
-microkernels, but conceptually xv6 is monolithic.  
+microkernels, but conceptually xv6 is monolithic.
 
 \section{Code: xv6 organization}
 
@@ -352,11 +352,11 @@ and system calls), allocating memory and configuring
 virtual addresses, controlling devices, and managing the
 file-system.
 
-%% 
+%%
 \section{Process overview}
-%% 
+%%
 
-The unit of isolation in xv6 (as in other Unix operating systems) is a 
+The unit of isolation in xv6 (as in other Unix operating systems) is a
 \indextext{process}.
 The process abstraction prevents one process from wrecking or spying on
 another process's memory, CPU, file descriptors, etc.  It also prevents a process
@@ -371,7 +371,7 @@ and time-slicing of threads.
 To help enforce isolation, the process abstraction provides the
 illusion to a program that it has its own private machine.  A process provides
 a program with what appears to be a private memory system, or
-\indextext{address space}, 
+\indextext{address space},
 which other processes cannot read or write.
 A process also provides the program with what appears to be its own
 CPU to execute the program's instructions.
@@ -392,7 +392,7 @@ translates (or ``maps'') a
 \end{figure}
 
 Xv6 maintains a separate page table for each process that defines that process's
-address space. As illustrated in 
+address space. As illustrated in
 Figure~\ref{fig:as},
 an address space includes the process's
 \indextext{user memory}
@@ -407,7 +407,7 @@ the hardware uses only the low 39 bits when
 looking up virtual addresses in page tables;
 and xv6 uses only 38 of those 39 bits.
 Thus, the maximum address is $2^{38}-1$ =
-0x3fffffffff, which is \lstinline{MAXVA}~\lineref{kernel/riscv.h:/define.MAXVA/}.
+0x3fffffffff, which is \lstinline{MAXVA} (see \texttt{kernel/riscv.h}).
 At the top of the address space xv6 places
 a \indextext{trampoline} page (4096 bytes)
 and a \indextext{trapframe} page.  Xv6 uses these two pages
@@ -420,8 +420,8 @@ as Chapter~\ref{CH:TRAP} explains.
 The xv6 kernel maintains many pieces of state for each process,
 which it gathers into a
 \indexcode{struct proc}
-\lineref{kernel/proc.h:/^struct.proc/}.
-A process's most important pieces of kernel state are its 
+(see \texttt{kernel/proc.h}).
+A process's most important pieces of kernel state are its
 page table, its kernel stack, and its run state.
 We'll use the notation
 \indexcode{p->xxx}
@@ -430,14 +430,14 @@ to refer to elements of the
 structure; for example,
 \indexcode{p->pagetable} is a pointer to the process's page table.
 
-At this point, please read {\tt kernel/proc.h}, which defines {\tt
+At this point, please read \texttt{kernel/proc.h}, which defines {\tt
   struct proc}. The xv6 code is more important for you to understand
 than this book; you should prioritize the code, and consult this book
 as needed to clarify the code. The purpose of some of the code may not
 be apparent at first, but further reading and searching the code will
 help. Feel free to explore and modify the code.
 
-Each process has a thread of control (or 
+Each process has a thread of control (or
 \indextext{thread}
 for short) that holds the state needed to execute the process.
 At any given time, a thread might be executing on a CPU,
@@ -475,7 +475,7 @@ just after the system call instruction.  A process's thread can
 ``block'' in the kernel to wait for I/O, and resume where it left off
 when the I/O has finished.
 
-\indexcode{p->state} 
+\indexcode{p->state}
 indicates whether the process is allocated, ready
 to run, currently running on a CPU, waiting for I/O, or exiting.
 
@@ -495,14 +495,14 @@ the process the illusion of its own CPU.  In xv6, a process consists
 of one address space and one thread.  In real operating systems a
 process may have more than one thread to take advantage of multiple CPUs.
 
-%% 
+%%
 \section{Code: starting xv6, the first process and system call}
-%% 
+%%
 To make xv6 more concrete, we'll outline how the kernel starts and
 runs the first process. The subsequent chapters will describe the
 mechanisms that show up in this overview in more detail.
-Please read {\tt kernel/entry.S}, {\tt kernel/start.c},
-{\tt kernel/main.c}, and {\tt user/init.c}.
+Please read \texttt{kernel/entry.S}, \texttt{kernel/start.c},
+\texttt{kernel/main.c}, and \texttt{user/init.c}.
 
 When the RISC-V computer powers on, it initializes
 itself and runs a boot loader which is stored in read-only
@@ -519,7 +519,7 @@ contains I/O devices.
 
 Then the boot loader jumps to xv6 starting at
 \indexcode{_entry}
-\lineref{kernel/entry.S:/^.entry:/}.
+(see \texttt{kernel/entry.S}).
 The RISC-V starts with paging hardware disabled:
 virtual addresses map directly to physical addresses.
 The instructions at
@@ -529,7 +529,7 @@ Xv6 declares space for this stack,
 \lstinline{stack0},
 in the file
 \lstinline{start.c}
-\lineref{kernel/start.c:/stack0/}.
+(see \texttt{kernel/start.c}).
 The code at
 \lstinline{_entry}
 loads the stack pointer register
@@ -542,7 +542,7 @@ Now that the kernel has a stack,
 \lstinline{_entry}
 calls into C code at
 \lstinline{start}
-\lineref{kernel/start.c:/^start/}.
+(see \texttt{kernel/start.c}).
 
 The function
 \lstinline{start}
@@ -551,9 +551,9 @@ most crucially programming the clock chip to generate
 timer interrupts.
 Then {\tt start} uses the RISC-V {\tt mret}
 instruction to switch to supervisor mode and
-jump to 
+jump to
 \lstinline{main}
-\lineref{kernel/main.c:/^main/}.
+(see \texttt{kernel/main.c}).
 {\tt mret} requires
 a bit of setup:
 {\tt start} sets the previous privilege mode to
@@ -576,14 +576,14 @@ to supervisor mode.
 
 After
 \lstinline{main}
-\lineref{kernel/main.c:/^main/}  
-initializes several devices and subsystems, 
-it creates the first process by calling 
+(see \texttt{kernel/main.c})
+initializes several devices and subsystems,
+it creates the first process by calling
 \lstinline{userinit}
-\lineref{kernel/proc.c:/^userinit/}.
+(see \texttt{kernel/proc.c}).
 All newly created processes start executing in the kernel in
 \lstinline{forkret}
-\lineref{kernel/proc.c:/^forkret/}.
+(see \texttt{kernel/proc.c}).
 As a special case for the first process, {\tt forkret}
 calls {\tt kexec} to load the user program {\tt /init}.
 
@@ -592,7 +592,7 @@ After calling
 {\tt forkret} returns to user space in
 the \lstinline{/init} process.
 \lstinline{init}
-\lineref{user/init.c:/^main/}
+(see \texttt{user/init.c})
 creates a new console device file
 if needed
 and then opens it as file descriptors 0, 1, and 2.
@@ -603,7 +603,7 @@ The system is up.
 
 You may wonder how the operating system deals with buggy or malicious
 code. Because coping with malice is strictly harder than dealing with
-accidental bugs, it's reasonable to 
+accidental bugs, it's reasonable to
 focus mostly on providing security against malice.
 Here's a high-level view of typical security assumptions and
 goals in operating system design.
@@ -638,7 +638,7 @@ assumed to operate as advertised in the documentation, with no
 hardware bugs.
 
 Real life is not so straightforward. It's
-difficult to prevent abusive user programs from 
+difficult to prevent abusive user programs from
 calling system calls in a way that makes the system unusable
 by consuming kernel-protected resources:
 disk space, CPU time, process table slots, etc. It's usually
@@ -666,9 +666,9 @@ memory; in such a situation it is safer to halt execution with {\tt
 developer would react to a panic by working to identify and fix the
 underlying code bug.
 
-%% 
+%%
 \section{Real world}
-%% 
+%%
 
 Most operating systems have adopted the process concept, and most
 processes look similar to xv6's.  Modern operating systems, however,
@@ -681,7 +681,7 @@ a variant of
 \lstinline{fork}),
 to control which aspects of
 a process threads share.
-%% 
+%%
 \section{Exercises}
 %%
 
