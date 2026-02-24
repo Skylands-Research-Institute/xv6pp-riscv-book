@@ -1,5 +1,5 @@
 %   terminology:
-%     process: refers to execution in user space, or maybe struct proc &c
+%     process: refers to execution in user space, or maybe class process &c
 %     process memory: the lower part of the address space
 %     process has one thread with two stacks (one for in kernel mode and one for
 %     in user mode)
@@ -425,7 +425,7 @@ as Chapter~\ref{CH:TRAP} explains.
 
 The xv6++ kernel maintains many pieces of state for each process,
 which it gathers into a
-\indexcode{struct proc}
+\indexcode{class process}
 (see \texttt{kernel/process.h}).
 A process's most important pieces of kernel state are its
 page table, its kernel stack, and its run state.
@@ -437,7 +437,7 @@ structure; for example,
 \indexcode{p->pagetable} is a pointer to the process's page table.
 
 At this point, please read \texttt{kernel/process.h}, which defines {\tt
-  struct proc}. The xv6++ code is more important for you to understand
+  class process}. The xv6++ code is more important for you to understand
 than this book; you should prioritize the code, and consult this book
 as needed to clarify the code. The purpose of some of the code may not
 be apparent at first, but further reading and searching the code will
