@@ -306,40 +306,46 @@ microkernels, but conceptually xv6 is monolithic.
 
 \section{Code: xv6 organization}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \center
 \begin{tabular}{l|l|l}
 & {\bf File} & {\bf Description} \\
 \midrule
 Boot & entry.S & Very first boot instructions. \\
- & main.c & Control initialization of other modules. \\
+ & main.cpp & Kernel initialization. \\
  & start.c & Early machine-mode boot code. \\
-Processes & exec.c & exec() system call. \\
- & proc.c & Processes and scheduling. \\
+\midrule
+Processes & process.cpp & Process abstraction. \\
+ & process\_scheduler.cpp & Scheduling policy. \\
+ & process\_manager.cpp & Process creation and management. \\
  & swtch.S & Thread switching. \\
- & sysproc.c & Process-related system calls. \\
+ & sysproc.cpp & Process-related system calls. \\
+\midrule
 Traps & kernelvec.S & Handle traps from kernel code. \\
  & trampoline.S & Handle traps from user code. \\
- & trap.c & C code to handle and return from traps and interrupts. \\
- & syscall.c & Dispatch system calls to handling function. \\
-Memory & vm.c & Manage page tables and address spaces. \\
- & kalloc.c & Physical page allocator. \\
-Devices & console.c & Connect to the user keyboard and screen. \\
- & plic.c & RISC-V interrupt controller. \\
- & printf.c & Formatted output to the console. \\
- & uart.c & Serial-port console device driver. \\
- & virtio\_disk.c & Disk device driver. \\
-FS & bio.c & Disk block cache for the file system. \\
- & file.c & File descriptor support. \\
- & fs.c & File system. \\
- & log.c & File system logging and crash recovery. \\
- & sysfile.c & File-related system calls. \\
- & pipe.c & Pipes. \\
-Misc & sleeplock.c & Locks that yield the CPU. \\
- & spinlock.c & Locks that don't yield the CPU. \\
- & string.c & C string and byte-array library. \\
+ & interrupt\_manager.cpp & Trap and interrupt handling. \\
+ & syscall.cpp & System call dispatch. \\
+\midrule
+Memory & virtual\_memory.cpp & Page tables and address spaces. \\
+ & page\_allocator.cpp & Physical page allocator. \\
+\midrule
+Devices & console\_interface.cpp & Console device. \\
+ & uart16550\_driver.cpp & Serial driver. \\
+ & virtio\_driver.cpp & Disk device driver. \\
+ & printf.cpp & Formatted console output. \\
+\midrule
+File system & buffer\_cache.cpp & Disk block cache. \\
+ & file\_system.cpp & File system. \\
+ & file\_system\_log.cpp & Logging and crash recovery. \\
+ & file.cpp & File descriptor layer. \\
+ & pipe.cpp & Pipes. \\
+ & sysfile.cpp & File-related system calls. \\
+\midrule
+Locks \& utilities & spin\_lock.cpp & Spin locks. \\
+ & sleep\_lock.cpp & Sleep locks. \\
+ & string.c & C string library. \\
 \end{tabular}
-\caption{Xv6 kernel source files.}
+\caption{Xv6++ kernel source files (representative modules).}
 \label{fig:source}
 \end{figure}
 
