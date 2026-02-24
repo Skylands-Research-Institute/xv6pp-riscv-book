@@ -350,6 +350,9 @@ Locks \& utilities & spin\_lock.cpp & Spin locks. \\
 \end{figure}
 
 The xv6++ kernel source is in the {\tt kernel/} sub-directory.
+The kernel's major subsystems are gathered into a single top-level object of
+type \lstinline{xv6pp} (see \texttt{kernel/xv6pp.h}), which holds instances of
+the process, memory, device, and file-system managers.
 Figure~\ref{fig:source} lists the files, divided into the
 major areas of kernel responsibility: starting the
 system (booting), creating
@@ -591,10 +594,11 @@ All newly created processes start executing in the kernel in
 \lstinline{forkret}
 (see \texttt{kernel/process\_manager.cpp}).
 As a special case for the first process, {\tt forkret}
-calls {\tt kexec} to load the user program {\tt /init}.
+initializes the file system and then calls {\tt exec}
+to load the user program {\tt /init}.
 
 After calling
-\lstinline{kexec},
+\lstinline{exec},
 {\tt forkret} returns to user space in
 the \lstinline{/init} process.
 \lstinline{init}
@@ -604,7 +608,6 @@ if needed
 and then opens it as file descriptors 0, 1, and 2.
 Then it starts a shell on the console.
 The system is up.
-
 \section{Security Model}
 
 You may wonder how the operating system deals with buggy or malicious
