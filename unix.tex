@@ -123,19 +123,9 @@ and scripting features.
 The xv6++ shell is a simple implementation of the essence of
 the Unix Bourne shell.
 
-The implementation of the xv6++ shell can be found at
-\fileref{user/sh.c}. (\textcolor{blue}{The link} is a hyperlink to
-the relevant xv6++ source code at
-\url{https://github.com/Skylands-Research-Institute/xv6pp-riscv} and the specific number
-refers to the sheet and line number in
-\href{xv6-src-booklet.pdf}{xv6-src-booklet.pdf}, as in the Lions'
-Commentary on UNIX 6th Edition~\cite{lions}. A good practice is to try
-to read the source code first on your own (in your favorite
-development environment, on github, or in a PDF viewer) and then come
-back to this book.  By the end of this book you should be able to
-understand every line of xv6++ source code without having to consult this
-book.
-
+The xv6++ shell is implemented in \texttt{user/sh.c}.
+A good practice is to read the source code as you work through the chapter,
+and consult this text when you want help interpreting what you find.
 
 %%
 %%     Processes and memory
@@ -197,7 +187,6 @@ into classes with clearer ownership and boundaries (for example, process
 management, the buffer cache, and file-system logging).
 These internal changes are meant to improve readability and structure, not to
 change the user-visible behavior of the system calls in Figure~\ref{fig:api}.
-
 
 A process may create a new process using the
 \indexcode{fork}
@@ -321,7 +310,7 @@ conventionally the name of the program.
 The xv6++ shell uses the above calls to run programs on behalf of
 users. The main structure of the shell is simple; see
 \lstinline{main}
-\lineref{user/sh.c:/main/}.
+(see \texttt{user/sh.c}, \texttt{main}).
 The main loop reads a line of input from the user with
 \indexcode{getcmd}.
 Then it calls
@@ -338,12 +327,12 @@ would have been called with
 ``\lstinline{echo hello}''
 as the argument.
 \lstinline{runcmd}
-\lineref{user/sh.c:/runcmd/}
+(see \texttt{user/sh.c}, \texttt{runcmd})
 runs the actual command. For
 ``\lstinline{echo hello}'',
 it would call
 \lstinline{exec}
-\lineref{user/sh.c:/exec.ecmd/}.
+(see \texttt{user/sh.c}, \texttt{exec.ecmd}).
 If
 \lstinline{exec}
 succeeds then the child will execute instructions from
@@ -358,7 +347,7 @@ which will cause the parent to return from
 \lstinline{wait}
 in
 \lstinline{main}
-\lineref{user/sh.c:/main/}.
+(see \texttt{user/sh.c}, \texttt{main}).
 
 You might wonder why
 \indexcode{fork}
@@ -418,8 +407,7 @@ writes output to file descriptor 1 (standard output), and
 writes error messages to file descriptor 2 (standard error).
 As we will see, the shell exploits the convention to implement I/O redirection
 and pipelines. The shell ensures that it always has three file descriptors
-open
-\lineref{user/sh.c:/open..console/},
+open (see \texttt{user/sh.c}),
 which are by default file descriptors for the console.
 
 The
@@ -565,7 +553,7 @@ The parent process's file descriptors are not changed by this
 sequence, since it modifies only the child's descriptors.
 
 The code for I/O redirection in the xv6++ shell works in exactly this way
-\lineref{user/sh.c:/case.REDIR/}.
+(see \texttt{user/sh.c}, \texttt{case REDIR}).
 Recall that at this point in the code the shell has already forked the
 child shell and that
 \lstinline{runcmd}
@@ -576,7 +564,7 @@ to load the new program.
 The second argument to \lstinline{open} consists of a set of
 flags, expressed as bits, that control what \lstinline{open}
 does. The possible values are defined in the file control (fcntl) header
-\linerefs{kernel/fcntl.h:/RDONLY/,/TRUNC/}:
+(see \texttt{kernel/fcntl.h}):
 \lstinline{O_RDONLY},
 \lstinline{O_WRONLY},
 \lstinline{O_RDWR},
@@ -774,7 +762,7 @@ would never see end-of-file.
 The xv6++ shell implements pipelines such as
 \lstinline{grep fork sh.c | wc -l}
 in a manner similar to the above code
-\lineref{user/sh.c:/case.PIPE/}.
+(see \texttt{user/sh.c}, \texttt{case PIPE}).
 The child process creates a pipe to connect the left end of the pipeline
 with the right end. Then it calls
 \lstinline{fork}
@@ -927,7 +915,7 @@ It fills in a
 \lstinline{struct}
 \lstinline{stat},
 defined in
-\lstinline{stat.h} \fileref{kernel/stat.h}
+\texttt{kernel/stat.h}
 as:
 \begin{lstlisting}[]
 #define T_DIR     1   // Directory
@@ -1015,7 +1003,7 @@ the shell (and built the shell into the kernel).
 One exception is
 \lstinline{cd},
 which is built into the shell
-\lineref{user/sh.c:/if.cmd.0..==..c./}.
+(see \texttt{user/sh.c}).
 \lstinline{cd}
 must change the current working directory of the
 shell itself.  If
@@ -1107,4 +1095,3 @@ of pipes, one for each direction. Measure the
 program's performance, in exchanges per second.
 
 \end{enumerate}
-
