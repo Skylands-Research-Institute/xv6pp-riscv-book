@@ -1,4 +1,5 @@
-\documentclass[12pt]{book}
+%\documentclass[12pt]{book}
+\documentclass[12pt,openany]{book}
 \usepackage[T1]{fontenc}
 \usepackage{times}
 \usepackage{listings}
@@ -8,7 +9,6 @@
 % \usepackage{showidx}
 \usepackage{imakeidx}
 \usepackage{booktabs}
-\usepackage{url}
 \usepackage{etoolbox}  % for showidx
 \usepackage{fullpage}
 \usepackage{soul}
@@ -21,26 +21,15 @@
 % One space after periods
 \frenchspacing
 
-\hypersetup{pdfauthor={Russ Cox, Frans Kaashoek, Robert Morris},
-            pdftitle={xv6: a simple, Unix-like teaching operating system},}
-  
+\hypersetup{
+  pdfauthor={Russ Cox, Frans Kaashoek, Robert Morris},
+  pdftitle={xv6: a simple, Unix-like teaching operating system},
+}
+
 \lstset{basicstyle=\small\ttfamily}
 \lstset{morecomment=[is]{[[[}{]]]}}
 \lstset{escapeinside={(*@}{@*)}}
 \lstset{xleftmargin=5.0ex}
-
-\newcommand{\github}{https://github.com/Skylands-Research-Institute/xv6pp-riscv/blob/main/}
-
-\newcommand{\fileref}[1]{\small{\textcolor{red}{(#1)}}}
-\newcommand{\lineref}[2]{\small{\textcolor{red}{(#1:#2)}}}
-\newcommand{\linerefs}[3]{\small{\textcolor{red}{(#1:#2-#3)}}}
-
-% MFK: this (or file:) gives a security alert
-% \newcommand{\showlineref}[3]{\href{run:./xv6-riscv-src/#1:#2}{\small{(\textcolor{blue}{#3})}}}
-
-\newcommand{\showfileref}[2]{\href{\github/#1}{\small{(\textcolor{blue}{\texttt{#1}})}}}
-\newcommand{\showlineref}[3]{\href{\github/#1\#L#2}{\small{(\textcolor{blue}{\texttt{#1:#2}})}}}
-\newcommand{\showlinerefs}[5]{\href{\github/#1\#L#2-L#3}{\small{\textcolor{blue}{(\texttt{#1:#2-#3})}}}}
 
 \newcommand{\indextext}[1]{\textit{#1}\index{#1}}
 \newcommand{\indextextx}[1]{{#1}\index{#1}}
@@ -57,9 +46,9 @@
 \title{\textbf{xv6++: An Object-Oriented Teaching Operating System}}
 
 \author{
-	John Sissler\\[1em]
-	\small Edited and extended from \textit{xv6: A Simple, Unix-like Teaching Operating System}\\
-	\small by Russ Cox, Frans Kaashoek, and Robert Morris
+  John Sissler\\[1em]
+  \small Edited and extended from \textit{xv6: A Simple, Unix-like Teaching Operating System}\\
+  \small by Russ Cox, Frans Kaashoek, and Robert Morris
 }
 
 \makeindex
@@ -70,29 +59,23 @@
 
 \tableofcontents
 
-\input{latex.out/acks}
-\input{latex.out/unix}
-\input{latex.out/first}
-%\input{latex.out/mem}
-%\input{latex.out/trap}
-%\input{latex.out/pgfault}
-%\input{latex.out/interrupt}
-%\input{latex.out/lock}
-%\input{latex.out/sched}
-%\input{latex.out/sleep}
-%\input{latex.out/fs}
-%\input{latex.out/lock2}
-%\input{latex.out/sum}
+\input{acks}
+\input{unix}
+\input{first}
+%\input{mem}
+%\input{trap}
+%\input{pgfault}
+%\input{interrupt}
+%\input{lock}
+%\input{sched}
+%\input{sleep}
+%\input{fs}
+%\input{lock2}
+%\input{sum}
 
 {
-% The following prevents latex from splitting a bibliography entry with a page
-% break
+% Prevent LaTeX from splitting a bibliography entry with a page break
 \interlinepenalty=10000
-% Since we're using natbib in numbers mode, we don't need plainnat,
-% which exists to feed authors and years back in to natbib.  As a
-% result, it complains about entries without years, which we don't
-% care about.
-%\bibliographystyle{plainnat}
 \bibliographystyle{plain}
 \bibliography{book}
 }

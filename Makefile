@@ -1,48 +1,22 @@
-SRC=../xv6pp-riscv/
+TEX := $(wildcard *.tex)
+SPELLTEX := $(wildcard *.tex)
 
-T=latex.out
-
-TEX=$(patsubst %,$(T)/%,$(wildcard *.tex))
-SPELLTEX=$(wildcard *.tex)
-
-# Convert all SVG figures to PDFs before LaTeX runs
 SVGFIGS := $(wildcard fig/*.svg)
 PDFFIGS := $(SVGFIGS:.svg=.pdf)
 
 all: book.pdf
-.PHONY: all src clean
+.PHONY: all clean spell
 
-$(T)/%.tex: %.tex | src
-	mkdir -p latex.out
-	./lineref $(notdir $@) $(SRC)  xv6-riscv-src-booklet/fmt > $@
-
-src:
-	if [ ! -d $(SRC) ]; then \
-		git clone https://github.com/Skylands-Research-Institute/xv6pp-riscv.git $(SRC) ; \
-	else \
-		git -C $(SRC) pull ; \
-	fi; \
-	true
-
-booklet: src
-	$(MAKE) -C xv6-riscv-src-booklet SRC=$(abspath $(SRC))
-	mv xv6-riscv-src-booklet/xv6-src-booklet.pdf .
-
-book.pdf: booklet book.tex $(TEX) $(PDFFIGS)
+book.pdf: book.tex $(TEX) $(PDFFIGS)
 	pdflatex book.tex
 	bibtex book
 	pdflatex book.tex
 	pdflatex book.tex
 
-
-lineref: $(TEX) booklet
-	echo done
-
 clean:
-	rm -f book.aux book.idx book.ilg book.ind book.log\
-	 	book.toc book.bbl book.blg book.out
-	rm -rf latex.out
-	# Intentionally do not remove $(SRC) because it may point outside this repo.
+	rm -f book.aux book.idx book.ilg book.ind book.log \
+	      book.toc book.bbl book.blg book.out book.pdf
+	rm -f fig/*.pdf
 
 spell:
 	@ for i in $(SPELLTEX); do aspell --mode=tex -p ./aspell.words -c $$i; done
@@ -55,4 +29,3 @@ SVG2PDF = rsvg-convert -f pdf -o
 
 fig/%.pdf: fig/%.svg
 	$(SVG2PDF) $@ $<
-
