@@ -350,16 +350,45 @@ Locks \& utilities & spin\_lock.cpp & Spin locks. \\
 \end{figure}
 
 The xv6++ kernel source is in the {\tt kernel/} sub-directory.
-The kernel's major subsystems are gathered into a single top-level object of
-type \lstinline{xv6pp} (see \texttt{kernel/xv6pp.h}), which holds instances of
-the process, memory, device, and file-system managers.
-Figure~\ref{fig:source} lists the files, divided into the
-major areas of kernel responsibility: starting the
-system (booting), creating
-and controlling processes, handling traps (interrupts
-and system calls), allocating memory and configuring
-virtual addresses, controlling devices, and managing the
-file-system.
+Figure~\ref{fig:source} lists representative source files,
+organized by major areas of kernel responsibility: booting,
+process management, trap handling, virtual memory,
+device drivers, and the file system.
+
+In xv6++, these subsystems are gathered into a single top-level
+object of type \lstinline{xv6pp}
+(see \texttt{kernel/xv6pp.h}).
+A single global reference, \lstinline{kernel}, provides access to
+this object throughout the system.
+Rather than relying on global variables scattered across the kernel,
+xv6++ organizes the operating system as a collection of cooperating
+subsystem objects—process management, memory management,
+device drivers, scheduling, interrupt handling, and the file system—
+held together by this top-level kernel object.
+
+\begin{lstlisting}[language=C++]
+class xv6pp final {
+public:
+  xv6pp();
+  cpu_manager cpus;
+  page_allocator allocator;
+  buffer_cache cache;
+  char_device console_device;
+  uart16550_driver console_driver;
+  virtual_memory memory;
+  console_interface console;
+  virtio_driver disk_driver;
+  block_device disk;
+  process_scheduler scheduler;
+  process_manager processes;
+  interrupt_manager interrupts;
+  file_manager fmanager;
+  file_system fsystem;
+  file_system_log log;
+};
+
+extern xv6pp &kernel;
+\end{lstlisting}
 
 %%
 \section{Process overview}
