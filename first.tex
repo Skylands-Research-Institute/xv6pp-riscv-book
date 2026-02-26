@@ -240,8 +240,8 @@ bulk of the operating system runs as user-level server processes. For
 example, the file system code would execute as a server process, in
 user mode rather than supervisor mode.
 
-\begin{figure}[t]
-\center
+\begin{figure}[H]
+\centering
 \includegraphics[scale=0.5]{fig/mkernel.pdf}
 \caption{A microkernel with a file-system server}
 \label{fig:mkernel}
@@ -296,7 +296,7 @@ systems share many key ideas.  They implement system calls, they use
 page tables, they handle interrupts, they support processes, they use
 locks for concurrency control, they implement a file system,
 etc. This book focuses on these core ideas.
-
+\nopagebreak[4]
 Xv6++ is
 implemented as a monolithic kernel, like most Unix operating systems.
 Thus, the xv6++ kernel interface corresponds to the operating system
@@ -422,7 +422,7 @@ translates (or ``maps'') a
 \indextext{physical address}
 (an address that the CPU sends to main memory).
 
-\begin{figure}[t]
+\begin{figure}[H]
 \centering
 \includegraphics[scale=0.5]{fig/as.pdf}
 \caption{Layout of a process's virtual address space}

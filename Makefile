@@ -29,3 +29,4 @@ SVG2PDF = rsvg-convert -f pdf -o
 
 fig/%.pdf: fig/%.svg
 	$(SVG2PDF) $@ $<
+	pdfcrop $@ $@ >/dev/null	
