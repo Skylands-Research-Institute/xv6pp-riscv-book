@@ -12,3 +12,30 @@ All the ideas were illustrated in the context of one particular, very successful
 system call interface, the Unix interface, but those ideas carry over to the
 design of other operating systems.
 
+The original xv6 code base is written in procedural C and organized largely as a
+set of global functions and shared global state.  That organization is compact
+and effective, but it can be a conceptual mismatch for students whose early
+programming experience emphasizes object-oriented design (encapsulation,
+interfaces, composition, and separation of concerns).  xv6++ was written to
+narrow that gap: it preserves xv6’s instructional value and overall structure,
+while re-casting major subsystems as explicit objects with clear interfaces and
+well-defined lifecycles.  In xv6++, components such as the scheduler, buffer
+cache, logging system, and device drivers are structured as classes with
+explicit invariants and ownership rules, making resource management and
+concurrency constraints easier to see directly in the code.
+
+At the same time, using C++ in a small, bare-metal kernel requires discipline.
+There is no standard library, no dynamic runtime support, and no hidden memory
+management.  xv6++ therefore uses only a controlled subset of C++ features:
+simple classes, explicit initialization, intrusive data structures, and scoped
+guards for managing locks and buffers.  It avoids exceptions, dynamic
+allocation patterns that require a runtime, and other features that would
+obscure the low-level mechanisms the book aims to teach.  The result is a
+system that retains xv6’s simplicity while providing a structure that more
+closely matches modern software engineering practice.
+
+The goal of xv6++ is not to replace xv6, nor to argue that object-oriented
+kernels are inherently superior.  Rather, it is to provide an alternative
+pedagogical path: one that keeps the operating system small enough to study
+line by line, while presenting its structure in a form that aligns with how
+many students are taught to design and reason about software today.
