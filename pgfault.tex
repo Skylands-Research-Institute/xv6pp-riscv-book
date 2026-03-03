@@ -1,6 +1,6 @@
 \chapter{Page faults}
 \label{CH:PGFAULTS}
-%% 
+%%
 
 The RISC-V CPU raises a page-fault exception
 when a virtual address is used that has no mapping
@@ -35,18 +35,19 @@ content to appear in an application's address space, transparently
 reading file blocks in response to page faults. Another is lazy memory
 allocation, which allows a program to ask for a huge virtual
 address space, but only to pay the cost of allocating physical memory
-for the pages the program actually reads and writes. xv6 uses page
+for the pages the program actually reads and writes. xv6++ uses page
 faults for only one purpose: lazy allocation.
 
-Before proceeding, please read the functions {\tt sys\_sbrk()} in {\tt
-  kernel/sysproc.c}, and {\tt vmfault} in {\tt kernel/vm.c}.
-Search for calls to {\tt vmfault} in {\tt kernel/trap.c} and {\tt
-kernel/vm.c}.
+Before proceeding, please read the function {\tt sys\_sbrk()} (see
+\texttt{kernel/sysproc.c}, \texttt{sys\_sbrk}) and the page-fault handler
+\lstinline{vmfault} (see \texttt{kernel/vm.c}, \texttt{vmfault}).
+Also look at the user-trap handler in the interrupt manager, which detects
+page faults (see \texttt{kernel/interrupt\_manager.h}, \texttt{user\_interrupt}).
 
 \section{Lazy allocation}
 \label{sec:lazy}
 
-xv6's \indextext{lazy allocation} has two parts.
+xv6++'s \indextext{lazy allocation} has two parts.
 First, when an application asks for memory by calling
 \lstinline{sbrk} with the flag \lstinline{SBRK_LAZY}, the kernel notes the increase in size, but does not
 allocate physical memory and does not create PTEs for the new range of
@@ -73,13 +74,13 @@ incurs the extra overhead of page faults, which involve a user/kernel
 transition.  Operating systems can reduce this cost by allocating a
 batch of consecutive pages per page fault instead of one page and by
 specializing the kernel entry/exit code for such page-faults (though
-xv6 does neither).
+xv6++ does neither).
 
 On the other hand, when taking a page fault for a lazily-allocated
 page, the kernel may find that it has not free memory to allocate.  In
 this case, the kernel has no easy way of returning an out-of-memory
 error to the application and instead kills the application.  For
-applications that prefer an error on a failed allocation, xv6 allows
+applications that prefer an error on a failed allocation, xv6++ allows
 an application to allocate memory eagerly by calling \lstinline{sbrk}
 with the flag \lstinline{SBRK_EAGER}.
 
@@ -89,60 +90,65 @@ The system call {\tt sbrk(n)} grows (or shrinks if {\tt n}
 is negative) a process's memory size by {\tt n} bytes, and returns
 the start of the newly allocated region (i.e., the old size).
 The kernel implementation is \lstinline{sys_sbrk}
-\lineref{kernel/sysproc.c:/^sys_sbrk/}.
+(see \texttt{kernel/sysproc.c}, \texttt{sys\_sbrk}).
+
+In xv6++, process memory growth is ultimately performed by the process
+object (see \texttt{kernel/process.h}, \texttt{process}) via its
+memory-growth routine (see \texttt{kernel/process.h}, \texttt{grow}).
 
 If the application specifies \lstinline{SBRK_EAGER}, the system
-call is implemented by the function
-\lstinline{growproc}
-\lineref{kernel/proc.c:/^growproc/}.
-\lstinline{growproc} calls \lstinline{uvmalloc}.
-\lstinline{uvmalloc}
-\lineref{kernel/vm.c:/^uvmalloc/}
-allocates physical memory with {\tt kalloc}, zeros the allocated memory,
-and adds PTEs to the user page table with {\tt mappages}.
+call allocates and maps physical memory immediately, rather than waiting
+for a page fault. In classic xv6, this work is done by \lstinline{growproc}
+and \lstinline{uvmalloc}. In xv6++, the same responsibilities are split
+between the process and the virtual memory manager (see
+\texttt{kernel/virtual\_memory.h}, \texttt{alloc}) and (see
+\texttt{kernel/virtual\_memory.h}, \texttt{mappages}), which allocate
+physical pages, zero them, and create user PTEs.
 
-If the applications allocates memory lazily, \lstinline{sys_sbrk}
-just increments the process's size
-(\lstinline{myproc()->sz}) by {\tt n} and returns the old size; it does
+If the application allocates memory lazily, \lstinline{sys_sbrk}
+just increments the process's recorded size and returns the old size; it does
 not allocate physical memory or add PTEs to the process's page table.
 
 When a process loads or stores to a virtual address that
 lacks a valid page-table mapping, the CPU will
-raise \indextext{page-fault exception}.
-\lstinline{usertrap} checks for this case
-\lineref{kernel/trap.c:/page fault/}
-and calls \lstinline{vmfault}
-\lineref{kernel/vm.c:/^vmfault/}
-to handle the page fault.  \lstinline{vmfault}
+raise a \indextext{page-fault exception}.
+The user-trap handler detects this situation
+(see \texttt{kernel/interrupt\_manager.h}, \texttt{user\_interrupt})
+and calls the page-fault handler \lstinline{vmfault}
+(see \texttt{kernel/vm.c}, \texttt{vmfault})
+to handle the page fault. \lstinline{vmfault}
 checks that the faulting address is within the
 region previously granted by {\tt sbrk},
-allocates a page of physical memory with {\tt kalloc},
-zeros the allocated page, and adds a PTE to the user page table with
-{\tt mappages}.  Xv6 sets the \lstinline{PTE_W}, \lstinline{PTE_R},
+allocates a page of physical memory, zeros the allocated page, and adds a PTE
+to the user page table.
+xv6++ sets the \lstinline{PTE_W}, \lstinline{PTE_R},
 \lstinline{PTE_U}, and \lstinline{PTE_V} flags in the PTE for the
-new page. Then, \lstinline{usertrap} resumes the
+new page. Then, the user-trap handler resumes the
 process at the instruction that caused the fault. Because the
 PTE is now valid, the re-executed load or store instruction
 will execute without a fault.
 
 If an application frees memory using {\tt sbrk}, \lstinline{sys_sbrk}
-calls \lstinline{shrinkproc}, which calls \lstinline{uvmdealloc}.  The
-real work is done by {\tt uvmunmap} \lineref{kernel/vm.c:/^uvmunmap/},
-which uses {\tt walk} to find PTEs.  Since some pages may never have
-been used by the process and thus never have been allocated by {\tt
-  vmfault}, {\tt uvmunmap} skips PTEs without the \lstinline{PTE_V}
-flag.  If a PTE mapping is valid, {\tt uvmunmap} calls {\tt kfree}
-to free the physical memory it refers to.
+shrinks the process and the kernel unmaps the corresponding pages. In classic xv6
+this is done by \lstinline{shrinkproc} and \lstinline{uvmdealloc}; in xv6++ the
+virtual memory manager performs the actual unmapping and freeing work
+(see \texttt{kernel/virtual\_memory.h}, \texttt{dealloc}) and (see
+\texttt{kernel/virtual\_memory.h}, \texttt{unmap}).
+Since some pages may never have
+been used by the process and thus never have been allocated by
+\lstinline{vmfault}, the unmap code skips PTEs without the \lstinline{PTE_V}
+flag. If a PTE mapping is valid, the kernel frees the physical memory
+it refers to.
 
-Note that Xv6 uses a process's page table not just to tell the
+Note that xv6++ uses a process's page table not just to tell the
 hardware how to map user virtual addresses, but also as the only
 record of which physical memory pages are allocated to that
-process. That is the reason why freeing user memory (in {\tt
-  uvmunmap}) requires examination of the user page table.
+process. That is the reason why freeing user memory requires
+examination of the user page table.
 
 \section{Real world: Copy-On-Write (COW) fork}
 
-Many kernels (though not xv6) use page faults to implement
+Many kernels (though not xv6++) use page faults to implement
 \indextext{copy-on-write (COW) fork}. The {\tt fork} system call
 promises that the
 child sees memory whose initial content is the same as the parent's
@@ -195,7 +201,7 @@ them to benefit.
 \section{Real world: Demand paging}
 
 Yet another widely-used feature that exploits page faults is
-\indextext{demand paging}.  In the \lstinline{exec} system call, xv6 loads all 
+\indextext{demand paging}.  In the \lstinline{exec} system call, xv6 loads all
 of an application's text
 and data into memory before starting
 the application.  Since applications
@@ -257,35 +263,20 @@ which are files that a program maps into its address space using
 the \texttt{mmap} system call so that the program can read and write
 them using load and store instructions.
 
-% "virtual" memory, eviction, page-in
-% lazy allocation
-% auto stack expansion
-% guard pages
-% mmap files
-% cow fork
-% shared text, shared libraries
-% demand paging of text
-% virtual machine migration
-% distributed shared memory
-% fast IPC
-% zero-copy write
-% DPDK
-% (unified block / page cache)
-
-%% 
+%%
 \section{Exercises}
-%% 
+%%
 
 \begin{enumerate}
 
 \item Write a user program that grows its address space by one byte by calling
 \lstinline{sbrk(1)}.
-Run the  program and investigate the page table for the program before the call
+Run the program and investigate the page table for the program before the call
 to
 \lstinline{sbrk}
 and after the call to
 \lstinline{sbrk}.
-How much space has the kernel allocated?  What does the
+How much space has the kernel allocated? What does the
 PTE
 for the new memory contain?
 
