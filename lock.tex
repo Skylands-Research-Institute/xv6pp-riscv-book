@@ -70,12 +70,10 @@ the {\tt wait} system call on two different
 CPUs.  {\tt wait} frees the child's memory.
 Thus
 on each CPU, the kernel will free physical pages.
-The page allocator maintains a linked
-list of free pages:
-allocating a page pops from the head of the free list
-(see \texttt{kernel/page\_allocator.h}, \texttt{page\_allocator::alloc}),
-and freeing a page pushes a page onto the list
-(see \texttt{kernel/page\_allocator.h}, \texttt{page\_allocator::free}).
+The page allocator maintains a linked list of free pages
+(see \texttt{kernel/page\_allocator.h}):
+allocating a page pops from the head of the free list, and freeing a
+page pushes a page onto the list.
 For best performance, we might hope that the frees of the two parent processes
 would execute in parallel without either having to wait for the other,
 but this would not be correct given a naive free-list implementation.
@@ -108,7 +106,7 @@ follows:
     }
 \end{lstlisting}
 
-\begin{figure}[t]
+\begin{figure}[H]
 \center
 \includegraphics[scale=0.5]{fig/race.pdf}
 \caption{Example race}
@@ -233,8 +231,8 @@ complicated designs.
 \section{Code: Locks}
 %% 
 
-Please read (see \texttt{kernel/spin\_lock.h}, \texttt{class spin\_lock})
-and (see \texttt{kernel/sleep\_lock.h}, \texttt{class sleep\_lock}).
+Please read \texttt{kernel/spin\_lock.h}, \texttt{class spin\_lock},
+and \texttt{kernel/sleep\_lock.h}, \texttt{class sleep\_lock}.
 
 xv6++ has two types of locks: spin locks and sleep locks.
 We'll start with spin locks.
@@ -329,7 +327,7 @@ lists many of the locks in xv6++.
 \begin{tabular}{ll}
 {\bf Lock} & {\bf Description} \\
 \midrule
-\texttt{kernel.cache.lock} & Protects allocation and LRU management of block buffer cache entries \\
+\texttt{kernel.cache.lock} & Protects allocation and list management of block buffer cache entries \\
 \texttt{kernel.console.lock} & Serializes console input state updates and readers \\
 \texttt{kernel.console\_driver.lock} & Serializes access to UART transmit/receive state \\
 \texttt{kernel.fmanager.file\_lock} & Serializes allocation of a \texttt{file} in the global file table \\
@@ -541,32 +539,13 @@ reclamation. xv6++ avoids the additional complexity of lock-free programming.
 
 \begin{enumerate}
 
-\item Comment out the locking in the page allocator's allocation path
-(see \texttt{kernel/page\_allocator.h}, \texttt{page\_allocator::alloc}).
-This seems like it should cause problems for
-kernel code that allocates pages;
-what symptoms do you expect to see?
-When you run xv6++, do you see these symptoms?
-If you don't see a problem, why not?
-See if you can provoke a problem by inserting
-dummy loops into the critical section of the allocator.
-
-\item Suppose that you instead commented out the
-locking in the page allocator's free path
-(see \texttt{kernel/page\_allocator.h}, \texttt{page\_allocator::free}).
-What might now go wrong? Is lack of locks in freeing
-less harmful than in allocating?
-
-\item If two CPUs allocate pages
-at the same time, one may have to wait for the other,
-which is bad for performance.
-Modify the allocator
-to have more parallelism, so that simultaneous
-allocations from different CPUs can proceed without waiting for each other.
-
-\item Write a parallel program using POSIX threads, which is supported on most
-operating systems. For example, implement a parallel hash table and measure if
-the number of puts/gets scales with increasing number of CPUs.
+\item Modify the page allocator to reduce lock contention by giving each
+CPU its own free list and lock. Allocation and freeing should normally
+use the current CPU's list, so simultaneous allocations on different CPUs
+can proceed without sharing one global allocator lock. If a CPU's free
+list is empty, it should safely steal pages from another CPU's list.
+Preserve allocator correctness under concurrency and verify the change by
+running \texttt{usertests -q}.
 
 \end{enumerate}
 

@@ -193,17 +193,3 @@ conflicting operations at the same time, and whether other code paths are the
 real bottleneck. It can be difficult to guess whether a given locking scheme
 will cause performance problems, so measurement on realistic workloads is often
 required.
-
-\section{Exercises}
-
-\begin{enumerate}
-
-\item Modify xv6++'s pipe implementation to allow a read and a write to the same
-pipe to proceed in parallel on different CPUs.
-
-\item Modify xv6++'s process scheduler to reduce lock contention when different
-CPUs are looking for runnable processes at the same time.
-
-\item Eliminate some of the serialization in xv6++'s \lstinline{fork()}.
-
-\end{enumerate}

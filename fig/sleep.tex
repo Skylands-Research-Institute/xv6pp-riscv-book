@@ -2,18 +2,18 @@
 
   \node (code0) at (0,0) {
     \begin{lstlisting}[]
-      piperead() {
-        acquire(&pipe->lock);         
-        while(no data in pipe->buffer) {
-          sleep(&pipe, &pipe->lock) {
-            // in sleep()
-            acquire(&p->lock)
-            release(&pipe->lock)
+      pipe::read() {
+        lock_guard<spin_lock> g(lock);
+        while(nread == nwrite) {
+          pr->sleep(&nread, lock) {
+            // in process::sleep()
+            lock_guard<spin_lock> pg(p->lock)
+            lock.release()
             p->state = SLEEPING
             ...
             swtch() {
               // in scheduler()
-              release(&p->lock)
+              p->lock.release()
               ...
     \end{lstlisting}
 
@@ -22,6 +22,6 @@
 
     \draw[<->,thick] (4.7,2.5) -- (4.7,-0.3);
     \draw[<->,thick] (4.9,0.7) -- (4.9,-2.6);
-    \node at (6.5, 1.5) {Holding pipe->lock};
+    \node at (6.5, 1.5) {Holding pipe lock};
     \node at (6.5, -1.3) {Holding p->lock};
 \end{tikzpicture}

@@ -725,8 +725,13 @@ a process threads share.
 
 \begin{enumerate}
 
-\item Add a system call to xv6++
-  that returns the amount of free memory available.
+\item Add a \texttt{getppid} system call to xv6++ that returns the
+process ID of the calling process's parent. Add the process accessor
+needed to retrieve the parent PID, then connect the system call through
+the kernel handler, dispatch table, system call number, user-space
+prototype, and user stub. The provided \texttt{getppidtest} program
+forks and checks that the child's \texttt{getppid} result matches the
+parent's \texttt{getpid} result.
 
 % break *0x3ffffff000
 % disas 0x3ffffff000,+8

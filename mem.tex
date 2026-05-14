@@ -247,8 +247,8 @@ initially creating it.
 \section{Code: creating an address space}
 %%
 
-Before proceeding, skim the virtual memory implementation (see
-\texttt{kernel/virtual\_memory.h} and its corresponding \texttt{.cpp}).
+Before proceeding, skim \texttt{kernel/virtual\_memory.h} and its
+corresponding \texttt{.cpp} implementation.
 
 In xv6++, the code for manipulating address spaces and page tables lives
 in the \texttt{virtual\_memory} module (see \texttt{kernel/virtual\_memory.h}).
@@ -621,22 +621,13 @@ Today people care more about speed than space efficiency.
 
 \begin{enumerate}
 
-\item Parse RISC-V's device tree to find the amount of physical memory the computer has.
-
-\item The functions \texttt{copyin} and \texttt{copyinstr} walk the user page table in software
-  (see \texttt{kernel/virtual\_memory.h}). Set up the kernel page table so that the kernel has the
-  user program mapped, and \texttt{copyin} and \texttt{copyinstr} can use \texttt{memcpy} to copy
-  system call arguments into kernel space, relying on the hardware to do the page table walk.
-
-\item Modify xv6++ to use super pages for the kernel.
-
-\item Unix implementations of \lstinline{exec} traditionally include special handling for shell scripts.
-If the file to execute begins with the text \lstinline{#!}, then the first line is taken to be a program
-to run to interpret the file. For example, if \lstinline{exec} is called to run \lstinline{myprog}
-\lstinline{arg1} and \lstinline{myprog}'s first line is \lstinline{#!/interp}, then \lstinline{exec}
-runs \lstinline{/interp} with command line \lstinline{/interp} \lstinline{myprog} \lstinline{arg1}.
-Implement support for this convention in xv6++.
-
-\item Implement address space layout randomization for the kernel.
+\item Complete the \texttt{vmprint} system call by making
+\texttt{virtual\_memory::vmprint()} walk the calling process's page table
+and print each valid leaf mapping. For each mapped page, print the
+virtual address and the physical address from the PTE. The provided
+\texttt{vmprinttest} program grows its heap and calls \texttt{vmprint};
+your output should include the low virtual addresses, the newly allocated
+heap pages, and enough mappings to show the structure of the process's
+address space.
 
 \end{enumerate}

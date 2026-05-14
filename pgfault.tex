@@ -35,54 +35,34 @@ content to appear in an application's address space, transparently
 reading file blocks in response to page faults. Another is lazy memory
 allocation, which allows a program to ask for a huge virtual
 address space, but only to pay the cost of allocating physical memory
-for the pages the program actually reads and writes. xv6++ uses page
-faults for only one purpose: lazy allocation.
+for the pages the program actually reads and writes. The xv6++ kernel
+in this repository does not use page faults to implement lazy allocation;
+unexpected user page faults cause the faulting process to be killed.
 
-Before proceeding, please read the function {\tt sys\_sbrk()} (see
-\texttt{kernel/sysproc.c}, \texttt{sys\_sbrk}) and the page-fault handler
-\lstinline{vmfault} (see \texttt{kernel/vm.c}, \texttt{vmfault}).
-Also look at the user-trap handler in the interrupt manager, which detects
-page faults (see \texttt{kernel/interrupt\_manager.h}, \texttt{user\_interrupt}).
+Before proceeding, please read \texttt{kernel/sysproc.cpp},
+\texttt{sys\_sbrk}, \texttt{process::grow} in \texttt{kernel/process.cpp},
+and the virtual memory allocator in \texttt{kernel/virtual\_memory.cpp}.
+Also look at the user-trap handler in the interrupt manager, which handles
+unexpected traps from user space
+(see \texttt{kernel/interrupt\_manager.h}, \texttt{user\_interrupt}).
 
-\section{Lazy allocation}
-\label{sec:lazy}
+\section{Eager allocation}
+\label{sec:eager}
 
-xv6++'s \indextext{lazy allocation} has two parts.
-First, when an application asks for memory by calling
-\lstinline{sbrk} with the flag \lstinline{SBRK_LAZY}, the kernel notes the increase in size, but does not
-allocate physical memory and does not create PTEs for the new range of
-virtual addresses.  Second, on a page fault on one of those new
-addresses, the kernel allocates a page of physical memory and maps it
-into the page table.  The kernel implements lazy allocation
-transparently to applications: no modifications to applications are
-necessary for them to benefit.
+When an application asks for memory by calling \lstinline{sbrk}, xv6++
+allocates physical pages immediately and maps them into the process's
+page table before returning to user space. This is \indextext{eager
+allocation}: if allocation fails, \lstinline{sbrk} can return an error
+to the application before the application starts using the new address
+range.
 
-Lazy allocation is convenient for applications because they don't have
-to accurately predict how much memory they will need.  For example, an
-application may process input, but not know in advance how large the
-input will be.  With lazy allocations an application can ask for
-memory for the worst case, but not have to pay for this worst case:
-the kernel doesn't have to do any work at all for pages that the
-application never uses.
-
-Furthermore, if the application is asking to grow the address space by
-a lot, then \lstinline{sbrk} without lazy allocation is expensive: if
-an application asks for a gigabyte of memory, the kernel has to
-allocate and zero 262,144 4096-byte physical pages.  Lazy allocation allows
-this cost to be spread over time.  On the other hand, lazy allocation
-incurs the extra overhead of page faults, which involve a user/kernel
-transition.  Operating systems can reduce this cost by allocating a
-batch of consecutive pages per page fault instead of one page and by
-specializing the kernel entry/exit code for such page-faults (though
-xv6++ does neither).
-
-On the other hand, when taking a page fault for a lazily-allocated
-page, the kernel may find that it has not free memory to allocate.  In
-this case, the kernel has no easy way of returning an out-of-memory
-error to the application and instead kills the application.  For
-applications that prefer an error on a failed allocation, xv6++ allows
-an application to allocate memory eagerly by calling \lstinline{sbrk}
-with the flag \lstinline{SBRK_EAGER}.
+Eager allocation keeps the kernel simple. Once \lstinline{sbrk}
+returns successfully, ordinary loads and stores to the newly allocated
+memory can proceed without further kernel involvement. The downside is
+that the kernel may allocate many pages that the program never actually
+uses. For example, if an application asks for a gigabyte of memory, the
+kernel must allocate and zero 262,144 4096-byte physical pages before
+returning from \lstinline{sbrk}.
 
 \section{Code}
 
@@ -90,43 +70,29 @@ The system call {\tt sbrk(n)} grows (or shrinks if {\tt n}
 is negative) a process's memory size by {\tt n} bytes, and returns
 the start of the newly allocated region (i.e., the old size).
 The kernel implementation is \lstinline{sys_sbrk}
-(see \texttt{kernel/sysproc.c}, \texttt{sys\_sbrk}).
+(see \texttt{kernel/sysproc.cpp}, \texttt{sys\_sbrk}).
 
 In xv6++, process memory growth is ultimately performed by the process
 object (see \texttt{kernel/process.h}, \texttt{process}) via its
 memory-growth routine (see \texttt{kernel/process.h}, \texttt{grow}).
 
-If the application specifies \lstinline{SBRK_EAGER}, the system
-call allocates and maps physical memory immediately, rather than waiting
-for a page fault. In classic xv6, this work is done by \lstinline{growproc}
+For positive arguments to \lstinline{sbrk}, \lstinline{process::grow}
+calls the virtual memory manager to allocate and map physical memory
+immediately. In classic xv6, this work is done by \lstinline{growproc}
 and \lstinline{uvmalloc}. In xv6++, the same responsibilities are split
-between the process and the virtual memory manager (see
+between the process object and the virtual memory manager (see
 \texttt{kernel/virtual\_memory.h}, \texttt{alloc}) and (see
 \texttt{kernel/virtual\_memory.h}, \texttt{mappages}), which allocate
 physical pages, zero them, and create user PTEs.
-
-If the application allocates memory lazily, \lstinline{sys_sbrk}
-just increments the process's recorded size and returns the old size; it does
-not allocate physical memory or add PTEs to the process's page table.
 
 When a process loads or stores to a virtual address that
 lacks a valid page-table mapping, the CPU will
 raise a \indextext{page-fault exception}.
 The user-trap handler detects this situation
 (see \texttt{kernel/interrupt\_manager.h}, \texttt{user\_interrupt})
-and calls the page-fault handler \lstinline{vmfault}
-(see \texttt{kernel/vm.c}, \texttt{vmfault})
-to handle the page fault. \lstinline{vmfault}
-checks that the faulting address is within the
-region previously granted by {\tt sbrk},
-allocates a page of physical memory, zeros the allocated page, and adds a PTE
-to the user page table.
-xv6++ sets the \lstinline{PTE_W}, \lstinline{PTE_R},
-\lstinline{PTE_U}, and \lstinline{PTE_V} flags in the PTE for the
-new page. Then, the user-trap handler resumes the
-process at the instruction that caused the fault. Because the
-PTE is now valid, the re-executed load or store instruction
-will execute without a fault.
+and treats it as an unexpected trap from user space. Current xv6++
+does not allocate pages on demand in response to user page faults;
+instead, the user-trap handler marks the process as killed.
 
 If an application frees memory using {\tt sbrk}, \lstinline{sys_sbrk}
 shrinks the process and the kernel unmaps the corresponding pages. In classic xv6
@@ -134,11 +100,7 @@ this is done by \lstinline{shrinkproc} and \lstinline{uvmdealloc}; in xv6++ the
 virtual memory manager performs the actual unmapping and freeing work
 (see \texttt{kernel/virtual\_memory.h}, \texttt{dealloc}) and (see
 \texttt{kernel/virtual\_memory.h}, \texttt{unmap}).
-Since some pages may never have
-been used by the process and thus never have been allocated by
-\lstinline{vmfault}, the unmap code skips PTEs without the \lstinline{PTE_V}
-flag. If a PTE mapping is valid, the kernel frees the physical memory
-it refers to.
+The unmap code frees the physical memory referred to by each valid PTE.
 
 Note that xv6++ uses a process's page table not just to tell the
 hardware how to map user virtual addresses, but also as the only
@@ -269,19 +231,14 @@ them using load and store instructions.
 
 \begin{enumerate}
 
-\item Write a user program that grows its address space by one byte by calling
-\lstinline{sbrk(1)}.
-Run the program and investigate the page table for the program before the call
-to
-\lstinline{sbrk}
-and after the call to
-\lstinline{sbrk}.
-How much space has the kernel allocated? What does the
-PTE
-for the new memory contain?
-
-\item Implement COW fork.
-
-\item Implement {\tt mmap}.
+\item Implement lazy allocation for user memory grown with
+\lstinline{sbrk}. The kernel should increase the process size without
+immediately allocating physical pages, then handle user page faults in
+the lazily allocated range by allocating and zeroing a page and mapping
+it into the faulting process's page table. Make sure deallocation,
+process exit, fork, and ordinary user tests continue to work when some
+pages in the address space have not yet been allocated. The provided
+\texttt{lazytest} program requests a large address range and touches only
+a few pages to check that allocation happens on demand.
 
 \end{enumerate}

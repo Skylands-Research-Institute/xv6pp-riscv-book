@@ -26,19 +26,17 @@ or
 \indextext{conditional synchronization}
 mechanisms.
 
-Before proceeding, please read
-(see \texttt{kernel/process\_manager.h}, \texttt{sleep}),
-(see \texttt{kernel/process\_manager.h}, \texttt{wakeup}),
-and all of
-(see \texttt{kernel/pipe.c}, \texttt{pipe}).
+Before proceeding, please read \texttt{kernel/process\_manager.h},
+\texttt{sleep} and \texttt{wakeup}, and the pipe implementation in
+\texttt{kernel/pipe.cpp}.
 
 \section{Overview}
 
 The sleep/wakeup interface looks like:
 
 \begin{lstlisting}
-void sleep(void *chan, struct spinlock *lk)
-void wakeup(void *chan)
+void process::sleep(void *chan, spin_lock &lk)
+void process_manager::wakeup(void *chan)
 \end{lstlisting}
 
 \lstinline{sleep()} marks the calling process as \lstinline{SLEEPING}
@@ -67,26 +65,38 @@ Here's a sketch of how the xv6++ pipe code uses
 \lstinline{sleep} and \lstinline{wakeup}:
 
 \begin{lstlisting}
-piperead(pipe){
-  acquire(&pipe->lock);
-  while(there's no data in pipe->buffer){
+int pipe::read(uint64 addr, int n) {
+  auto pr = kernel.cpus.curproc();
+  lock_guard<spin_lock> g(lock);
+
+  while (nread == nwrite && writeopen) {
     (*@\textcolor{blue}{// ZZZ}@*)
-    sleep(&pipe, &pipe->lock);
+    pr->sleep(&nread, lock);
   }
-  remove the data from the pipe;
-  release(&pipe->lock);
+
+  remove data from data[nread % PIPESIZE];
+  kernel.processes.wakeup(&nwrite);
 }
 
-pipewrite(pipe){
-  acquire(&pipe->lock);
-  append data to pipe->buffer;
-  wakeup(&pipe);
-  release(&pipe->lock);
+int pipe::write(uint64 addr, int n) {
+  auto pr = kernel.cpus.curproc();
+  lock_guard<spin_lock> g(lock);
+
+  while (nwrite == nread + PIPESIZE) {
+    kernel.processes.wakeup(&nread);
+    pr->sleep(&nwrite, lock);
+  }
+
+  append data to data[nwrite % PIPESIZE];
+  kernel.processes.wakeup(&nread);
 }
 \end{lstlisting}
 
-This code uses the address of the pipe data structure as
-the wait channel.
+This code uses the address of
+\lstinline{nread}
+as the reader wait channel and the address of
+\lstinline{nwrite}
+as the writer wait channel.
 
 What is the \lstinline{lk} argument to \lstinline{sleep}?
 In all uses of \lstinline{sleep}/\lstinline{wakeup}
@@ -112,12 +122,12 @@ since the \lstinline{wakeup} intended for it has already happened.
 This undesirable situation is called a \indextext{lost wake-up}.
 
 In the pipe example above, the lost wake-up being avoided is the
-possibility that a thread on another CPU might call \lstinline{pipewrite}
+possibility that a thread on another CPU might call \lstinline{pipe::write}
 at the point marked {\tt ZZZ},
-between \lstinline{piperead}'s check of the condition and its call to
-\lstinline{sleep}. The fact that \lstinline{piperead} holds the pipe
+between \lstinline{pipe::read}'s check of the condition and its call to
+\lstinline{sleep}. The fact that \lstinline{pipe::read} holds the pipe
 lock during the time between when it checks the condition and calls
-\lstinline{sleep} prevents \lstinline{pipewrite} from executing, and
+\lstinline{sleep} prevents \lstinline{pipe::write} from executing, and
 thus prevents a lost wake-up.
 
 \lstinline{sleep()} releases the condition lock so that the code calling
@@ -131,13 +141,12 @@ wake-ups.
 \section{Code: Sleep and wakeup}
 %%
 
-xv6++'s
+xv6++ implements the interface used in the example above with
 \indexcode{sleep}
-(see \texttt{kernel/process\_manager.cc}, \texttt{sleep})
 and
-\indexcode{wakeup}
-(see \texttt{kernel/process\_manager.cc}, \texttt{wakeup})
-implement the interface used in the example above.
+\indexcode{wakeup}.
+The code is in
+\texttt{kernel/process\_manager.cpp}.
 The basic idea is to have
 \lstinline{sleep}
 mark the current process as
@@ -247,7 +256,7 @@ there is no data to be read.
 From their point of view the wakeup was ``spurious,'' and
 they must sleep again.
 For this reason \lstinline{sleep} is always called inside a loop that
-re-checks the condition, as in \lstinline{piperead} above.
+re-checks the condition, as in \lstinline{pipe::read} above.
 
 No harm is done if two uses of sleep/wakeup accidentally
 choose the same channel: they will see spurious wakeups,
@@ -273,7 +282,7 @@ the other end of the pipe.
 
 Each pipe
 is represented by a
-\indexcode{struct pipe},
+\indexcode{class pipe},
 which contains
 a
 \lstinline{lock}
@@ -293,10 +302,11 @@ is
 \lstinline{data[0]}.
 The counts do not wrap.
 This convention lets the implementation
-distinguish a full buffer
-(\lstinline{nwrite == nread + PIPESIZE})
-from an empty buffer
-(\lstinline{nwrite == nread}),
+distinguish a full buffer from an empty buffer:
+\begin{lstlisting}
+nwrite == nread + PIPESIZE  // full
+nwrite == nread             // empty
+\end{lstlisting}
 but it means that indexing into the buffer
 must use
 \lstinline{data[nread % PIPESIZE]}
@@ -306,51 +316,53 @@ instead of just
 \lstinline{nwrite}).
 
 Now suppose calls to
-\lstinline{piperead}
+\lstinline{pipe::read}
 and
-\lstinline{pipewrite}
+\lstinline{pipe::write}
 happen simultaneously on two different CPUs.
-\lstinline{pipewrite}
-begins by acquiring the pipe's lock, which
+\lstinline{pipe::write}
+begins by constructing a
+\lstinline{lock_guard}
+that acquires the pipe's lock, which
 protects the counts, the data, and their
 associated invariants.
-\lstinline{piperead}
+\lstinline{pipe::read}
 then tries to acquire the lock too, but cannot,
 and spins waiting for the lock.
 
 While
-\lstinline{piperead}
+\lstinline{pipe::read}
 waits,
-\lstinline{pipewrite}
+\lstinline{pipe::write}
 loops over the bytes being written,
 adding each to the pipe in turn.
 During this loop, it could happen that
 the buffer fills.
 In this case,
-\lstinline{pipewrite}
+\lstinline{pipe::write}
 calls
 \lstinline{wakeup}
 to alert any sleeping readers that there is data waiting,
 and then sleeps (releasing the pipe lock) to wait for a reader
 to take some bytes out of the buffer.
 
-\lstinline{piperead}
+\lstinline{pipe::read}
 now acquires the pipe lock and enters its critical section:
 it finds that
-\lstinline{pi->nread != pi->nwrite},
+\lstinline{nread != nwrite},
 copies data out of the pipe, and increments
 \lstinline{nread}
 by the number of bytes copied.
 That much space in the buffer is now available for writing, so
-\lstinline{piperead}
+\lstinline{pipe::read}
 calls
 \lstinline{wakeup}
 to wake any sleeping writers before it returns.
 
 The pipe code uses separate wait channels for reader and writer
-(\lstinline{&pi->nread}
+(\lstinline{&nread}
 and
-\lstinline{&pi->nwrite}),
+\lstinline{&nwrite}),
 which can reduce spurious wakeups if there are multiple readers
 and writers waiting for the same pipe.
 
@@ -359,12 +371,13 @@ and writers waiting for the same pipe.
 %%
 
 Please read the code for the kernel functions
-\texttt{kwait}, \texttt{kexit}, and \texttt{kkill}
+\texttt{process\_manager::wait}, \texttt{process::exit}, and
+\texttt{process\_manager::kill}
 in the process management code
-(see \texttt{kernel/process\_manager.cc}, \texttt{kwait}),
-(see \texttt{kernel/process\_manager.cc}, \texttt{kexit}),
+(see \texttt{kernel/process\_manager.cpp}, \texttt{wait}),
+(see \texttt{kernel/process.cpp}, \texttt{exit}),
 and
-(see \texttt{kernel/process\_manager.cc}, \texttt{kkill}).
+(see \texttt{kernel/process\_manager.cpp}, \texttt{kill}).
 
 \lstinline{sleep}
 and
@@ -387,40 +400,40 @@ If the parent exits before the child, the parent gives the child to
 \lstinline{init}, which perpetually calls \lstinline{wait};
 thus every child has a parent to clean up after it.
 
-\lstinline{kwait} starts by acquiring
+\lstinline{process_manager::wait} starts by acquiring
 \lstinline{wait\_lock},
 which acts as the condition lock that helps ensure that
-\lstinline{kwait} doesn't miss a wakeup from an exiting child.
-Then \lstinline{kwait} scans the process table.
+\lstinline{wait} doesn't miss a wakeup from an exiting child.
+Then \lstinline{wait} scans the process table.
 If it finds a child in \texttt{ZOMBIE} state,
 it frees that child's resources, copies the child's exit status,
 and returns the child's process ID.
-If \lstinline{kwait} finds children but none have exited,
+If \lstinline{wait} finds children but none have exited,
 it calls \lstinline{sleep} to wait for any of them to exit,
 and then scans again.
-\lstinline{kwait} often holds two locks,
+\lstinline{wait} often holds two locks,
 \lstinline{wait\_lock} and some process's \lstinline{p->lock};
 the deadlock-avoiding order is first \lstinline{wait\_lock}
 and then \lstinline{p->lock}.
 
-\lstinline{kexit} records the exit status, frees some resources,
+\lstinline{process::exit} records the exit status, frees some resources,
 calls a reparenting routine to give any children to \lstinline{init},
 wakes up the parent in case it is in \lstinline{wait},
 marks the caller as a zombie, and permanently yields the CPU.
-\lstinline{kexit} holds both \lstinline{wait\_lock} and \lstinline{p->lock}
-during this sequence, in the same order as \lstinline{kwait}, to avoid deadlock.
+\lstinline{process::exit} holds both \lstinline{wait\_lock} and \lstinline{p->lock}
+during this sequence, in the same order as \lstinline{wait}, to avoid deadlock.
 
 While \lstinline{exit} allows a process to terminate itself,
 the \lstinline{kill} system call lets one process request that another terminate.
 It would be too complex for \lstinline{kill} to directly destroy the victim
 process, since the victim might be executing on another CPU.
-Thus \lstinline{kkill} does very little: it sets the victim's killed flag
+Thus \lstinline{process_manager::kill} does very little: it sets the victim's killed flag
 and, if it is sleeping, wakes it up.
 Eventually the victim will enter or leave the kernel, at which point
 trap handling code will notice that it has been killed and exit.
 
 If the victim process is in \lstinline{sleep},
-\lstinline{kkill}'s call to \lstinline{wakeup} will cause the victim to return
+\lstinline{kill}'s call to \lstinline{wakeup} will cause the victim to return
 from \lstinline{sleep}. This is potentially dangerous because the condition
 being waited for may not be true. However, calls to \lstinline{sleep} are
 always wrapped in a loop that re-tests the condition after \lstinline{sleep}
@@ -468,7 +481,7 @@ from overlooking a process that is calling \lstinline{sleep} but has not
 finished yielding the CPU.
 
 \item It prevents a \lstinline{kill}-target process from exiting and being
-re-allocated between a \lstinline{kkill} caller's checks and updates.
+re-allocated between a \lstinline{kill} caller's checks and updates.
 
 \end{itemize}
 
@@ -510,28 +523,3 @@ A killed process may be deep inside the kernel, and safely unwinding
 requires care. Unix systems use signals, interrupted system calls,
 and careful conventions to manage this complexity. xv6++ keeps things
 simpler and thus inherits some limitations.
-
-%%
-\section{Exercises}
-%%
-
-\begin{enumerate}
-
-\item Implement counting semaphores in xv6++.
-Choose a few uses of sleep and wakeup and replace them with semaphores.
-
-\item Can you implement a variant of \lstinline{sleep()} that
-takes just one argument, the channel, and doesn't need
-a lock argument?
-
-\item Fix the race between \lstinline{kill} and \lstinline{sleep},
-so that a \lstinline{kill} that occurs after the victim checks
-\lstinline{p->killed} but before it calls \lstinline{sleep}
-causes the victim to abandon the current system call.
-
-\item Design a plan so that every sleep loop checks
-\lstinline{p->killed}
-so that, for example, a process that is in a disk driver loop can
-return quickly if it is killed by another process.
-
-\end{enumerate}

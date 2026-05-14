@@ -1089,9 +1089,16 @@ and see the concepts underlying xv6++ in those systems as well.
 
 \begin{enumerate}
 
-\item Write a program that uses UNIX system calls to
-``ping-pong'' a byte between two processes over a pair
-of pipes, one for each direction. Measure the
-program's performance, in exchanges per second.
+\item Write a user-level \texttt{sleep} program that pauses
+execution for a number of timer ticks given on the command line.
+The program should validate that an argument was provided, convert
+it to an integer, call the existing \texttt{sleep} system call, and
+then exit.
+
+\item Write a user-level \texttt{pingpong} program that creates a
+child process and uses pipes to exchange one byte between parent and
+child. The child should print that it received \texttt{ping}, reply
+through a second pipe, and the parent should print that it received
+\texttt{pong} before waiting for the child to exit.
 
 \end{enumerate}

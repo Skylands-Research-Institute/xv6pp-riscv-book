@@ -320,19 +320,19 @@ into the kernel and causes
 {\tt uservec},
 the user-trap handler, and then the system call dispatcher to execute.
 
-At this point, please read {\tt kernel/syscall.c},
-{\tt sys\_write()} in {\tt kernel/sysfile.c},
+At this point, please read {\tt kernel/syscall.cpp},
+{\tt sys\_write()} in {\tt kernel/sysfile.cpp},
 and the virtual-memory copy routines in the virtual memory manager
 (see \texttt{kernel/virtual\_memory.h}, \texttt{copyout}),
 (see \texttt{kernel/virtual\_memory.h}, \texttt{copyin}), and
 (see \texttt{kernel/virtual\_memory.h}, \texttt{copyinstr}).
 
 \indexcode{syscall}
-(see \texttt{kernel/syscall.c}, \texttt{syscall})
+(see \texttt{kernel/syscall.cpp}, \texttt{syscall})
 retrieves the system call number from the saved
 \texttt{a7} in the trapframe
 and uses it to index into {\tt syscalls}
-(see \texttt{kernel/syscall.c}, \texttt{syscalls}).
+(see \texttt{kernel/syscall.cpp}, \texttt{syscalls}).
 For our example,
 \texttt{a7}
 contains
@@ -359,12 +359,14 @@ The kernel functions
 \lstinline{argint},
 \lstinline{argaddr},
 and
-\lstinline{argfd}
+\lstinline{argstr}
 retrieve the
 \textit{n} 'th
 system call argument
 from the trap frame
-as an integer, pointer, or a file descriptor.
+as an integer, pointer, or string. File-system calls also use the
+\lstinline{argfd} helper in \texttt{kernel/sysfile.cpp} to turn a file
+descriptor argument into a file object.
 
 Some system calls pass pointers as arguments, and the kernel must use
 those pointers to read or write user memory. The {\tt write} system
@@ -380,7 +382,7 @@ instructions to load or store from user-supplied addresses.
 
 The kernel implements functions that safely transfer data to and
 from user-supplied addresses.
-{\tt fetchstr} is an example (see \texttt{kernel/syscall.c}, \texttt{fetchstr}).
+{\tt fetchstr} is an example (see \texttt{kernel/syscall.cpp}, \texttt{fetchstr}).
 File system calls such as
 {\tt exec} use {\tt fetchstr} to retrieve string file-name arguments from user
 space.
@@ -493,22 +495,3 @@ increase efficiency. Xv6++ avoids them in order to reduce the chances of
 security bugs in the kernel due to inadvertent use of user pointers,
 and to reduce some complexity that would be required to ensure that
 user and kernel virtual addresses don't overlap.
-
-\section{Exercises}
-
-\begin{enumerate}
-
-\item Could some or all of the code in {\tt trampoline.S} and
-{\tt kernelvec.S} be written in C++ rather than assembler?
-
-\item Is there a way to eliminate the special {\tt
-  TRAPFRAME} page mapping in every user address space? For
-  example, could
-  {\tt uservec} be modified to simply push the 32 user registers
-  onto the kernel stack, or store them in the process
-  object (see \texttt{kernel/process.h}, \texttt{process})?
-
-\item Could xv6++ be modified to eliminate the special {\tt
-  TRAMPOLINE} page mapping?
-
-\end{enumerate}

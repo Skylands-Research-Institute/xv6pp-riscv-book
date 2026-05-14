@@ -18,10 +18,10 @@ Before proceeding with this chapter, please read
 (see \texttt{kernel/cpu\_manager.h}, \texttt{class cpu\_manager}),
 (see \texttt{kernel/swtch.S}, \texttt{swtch}),
 and the scheduling-related methods
-(see \texttt{kernel/process\_manager.h}, \texttt{yield}),
-(see \texttt{kernel/process\_manager.h}, \texttt{sched}),
+(see \texttt{kernel/process\_scheduler.h}, \texttt{yield}),
+(see \texttt{kernel/process\_scheduler.h}, \texttt{sched}),
 and
-(see \texttt{kernel/process\_manager.h}, \texttt{scheduler}).
+(see \texttt{kernel/process\_scheduler.h}, \texttt{run}).
 
 %%
 \section{Multiplexing}
@@ -91,7 +91,7 @@ Each process object includes a saved context structure
 (see \texttt{kernel/process.h}, \texttt{struct context})
 that holds the thread's saved registers when it is not running.
 A CPU's scheduler thread has its own saved context in the CPU structure
-(see \texttt{kernel/cpu\_manager.h}, \texttt{struct cpu}).
+(see \texttt{kernel/cpu\_state.h}, \texttt{class cpu\_state}).
 
 When thread X wishes to switch to thread Y, thread X
 calls \texttt{swtch(\&X\_context, \&Y\_context)}.
@@ -130,8 +130,8 @@ caller-saved registers if needed.
 %%
 
 The scheduler exists as a special thread per CPU, each running
-\texttt{scheduler}
-(see \texttt{kernel/process\_manager.h}, \texttt{scheduler}).
+\texttt{process\_scheduler::run}
+(see \texttt{kernel/process\_scheduler.cpp}, \texttt{run}).
 
 A process that wants to give up the CPU must:
 
@@ -141,10 +141,10 @@ A process that wants to give up the CPU must:
 - Call \texttt{sched}  
 
 You can see this sequence in
-(see \texttt{kernel/process\_manager.cc}, \texttt{yield}),
-(see \texttt{kernel/process\_manager.cc}, \texttt{sleep}),
+(see \texttt{kernel/process\_scheduler.cpp}, \texttt{yield}),
+(see \texttt{kernel/process.cpp}, \texttt{sleep}),
 and
-(see \texttt{kernel/process\_manager.cc}, \texttt{kexit}).
+(see \texttt{kernel/process.cpp}, \texttt{exit}).
 
 \texttt{sched} calls \texttt{swtch} to save the current context and
 switch to the scheduler context.
@@ -164,7 +164,7 @@ Releasing the lock too early could allow another CPU
 to run a partially-saved process, causing stack corruption.
 
 %%
-\section{Code: mycpu and myproc}
+\section{Code: CPU state and current process}
 %%
 
 xv6++ must determine which CPU is currently executing.
@@ -174,12 +174,12 @@ While executing in the kernel, the RISC-V register
 holds the CPU's hartid.
 
 The function
-(see \texttt{kernel/process\_manager.cc}, \texttt{mycpu})
+(see \texttt{kernel/cpu\_manager.h}, \texttt{cpu})
 uses \lstinline{tp}
 to index the array of CPU structures.
 
 Each CPU structure
-(see \texttt{kernel/cpu\_manager.h}, \texttt{struct cpu})
+(see \texttt{kernel/cpu\_state.h}, \texttt{class cpu\_state})
 contains:
 
 - Pointer to current process  
@@ -195,11 +195,11 @@ When returning from user space,
 restores \lstinline{tp}.
 
 The function
-(see \texttt{kernel/process\_manager.cc}, \texttt{myproc})
+(see \texttt{kernel/cpu\_manager.cpp}, \texttt{curproc})
 returns the current process pointer safely by:
 
 1. Disabling interrupts  
-2. Calling \texttt{mycpu}  
+2. Calling \texttt{cpu}  
 3. Reading the process pointer  
 4. Restoring interrupts  
 
@@ -215,16 +215,3 @@ Each runnable process gets a turn.
 Real operating systems implement more sophisticated policies
 involving priorities, fairness guarantees,
 and throughput optimization.
-
-%%
-\section{Exercises}
-%%
-
-\begin{enumerate}
-
-\item Modify xv6++ to switch directly from one process's kernel thread
-to another without using the scheduler thread.
-Be careful to prevent multiple CPUs from running the same process
-and to avoid deadlocks.
-
-\end{enumerate}

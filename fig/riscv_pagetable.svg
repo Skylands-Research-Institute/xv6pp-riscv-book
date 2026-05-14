@@ -10,13 +10,13 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="816"
-   height="1056"
+   width="720"
+   height="736"
    id="svg2"
    version="1.1"
    inkscape:version="0.92.4 5da689c313, 2019-01-14"
    sodipodi:docname="riscv_pagetable.svg"
-   viewBox="0 0 765 990">
+   viewBox="0 50 675 690">
   <sodipodi:namedview
      id="base"
      pagecolor="#ffffff"

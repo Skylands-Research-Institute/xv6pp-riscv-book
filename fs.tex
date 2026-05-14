@@ -42,30 +42,33 @@ The rest of this chapter explains how xv6++ addresses these challenges.
 The file system implementation is organized in layers, shown in
 Figure~\ref{fig:fslayer}.
 The disk layer reads and writes blocks on a virtio disk.
-In xv6++ the disk is represented by \lstinline{kernel.disk}
-(see \texttt{kernel/xv6pp.h}),
-and the virtio driver is \lstinline{kernel.disk_driver}
-(see \texttt{kernel/virtio\_driver.h}).
+In xv6++ the disk and its driver are available as
+\lstinline{kernel.disk}
+and
+\lstinline{kernel.disk_driver}.
 The buffer cache layer caches disk blocks and synchronizes access to them,
 making sure that only one kernel thread at a time can modify the
-data stored in any particular block. In xv6++ this is the
-\lstinline{buffer_cache} class (see \texttt{kernel/buffer\_cache.h}).
+data stored in any particular block.
+In xv6++ this is the
+\lstinline{buffer_cache}
+class.
 The logging layer allows higher layers to wrap updates to several blocks in a
 \indextext{transaction},
 and ensures that the blocks are updated atomically in the
-face of crashes (i.e., all of them are updated or none). In xv6++ this is
-\lstinline{file_system_log} (see \texttt{kernel/file\_system\_log.h}).
+face of crashes (i.e., all of them are updated or none).
+In xv6++ this is
+\lstinline{file_system_log}.
 The inode layer provides individual files, each represented as an
 \indextext{inode}
 with a unique i-number and some blocks holding the file's data.
-In xv6++ inode management is implemented by \lstinline{file_system}
-(see \texttt{kernel/file\_system.h}).
+In xv6++ inode management is implemented by
+\lstinline{file_system}.
 The directory layer implements each directory as a special kind of
 inode whose content is a sequence of directory entries, each of which contains a
 file's name and i-number.
 The pathname layer provides hierarchical path names like
 \lstinline{/usr/rtm/xv6/fs.c},
-and resolves them with recursive lookup.
+and resolves them by walking the pathname one component at a time.
 Finally, the file descriptor layer abstracts many Unix resources
 (e.g., pipes, devices, files, etc.) using a uniform interface.
 
@@ -128,8 +131,8 @@ is in memory and that only one kernel thread at a time uses that copy;
 (2) cache popular blocks so that they don't need to be re-read from
 the slow disk.
 
-In xv6++ the buffer cache is implemented by \lstinline{class buffer_cache}
-(see \texttt{kernel/buffer\_cache.h} and \texttt{kernel/buffer\_cache.cpp}).
+In xv6++ the buffer cache is implemented by
+\lstinline{class buffer_cache}.
 Its primary interface is:
 
 \begin{itemize}
@@ -145,8 +148,8 @@ with \lstinline{relse()} when finished.
 The buffer cache uses a per-buffer sleep-lock so that only one thread at a time
 uses each buffer (and thus each disk block).
 
-Xv6++ also provides an optional RAII helper, \lstinline{buffer_guard}
-(see \texttt{kernel/buffer\_guard.h}),
+Xv6++ also provides an optional RAII helper,
+\lstinline{buffer_guard},
 which automatically releases a buffer when the guard object goes out of scope:
 
 \begin{lstlisting}
@@ -159,9 +162,9 @@ which automatically releases a buffer when the guard object goes out of scope:
 The buffer cache has a fixed number of buffers to hold disk blocks.
 If the file system asks for a block that is not already in the cache,
 the buffer cache must recycle a buffer currently holding some other block.
-The buffer cache recycles the least recently used buffer for the new block.
-The assumption is that the least recently used buffer is the one least likely
-to be used again soon.
+The buffer cache searches from the tail of its list for an unreferenced buffer
+to recycle. Newly read buffers move to the front of the list; released buffers
+with no remaining references move to the back.
 
 %% 
 %%  -------------------------------------------
@@ -169,7 +172,7 @@ to be used again soon.
 \section{Code: Buffer cache}
 
 The buffer cache contains a fixed \lstinline{storage[NBUF]} array of buffers,
-and maintains an LRU list using an intrusive doubly-linked list
+and maintains its cache list using an intrusive doubly-linked list
 (see \texttt{kernel/intrusive\_dlist.h}).
 The cache metadata is protected by a spinlock, while each individual buffer
 is protected by its own sleep-lock.
@@ -177,9 +180,9 @@ is protected by its own sleep-lock.
 \lstinline{buffer_cache::read(dev, blockno)} obtains a locked buffer for the
 given device and block number. If the buffer is not yet valid, the cache asks
 the disk driver to fill it by initiating a read through the block device.
-In xv6++ the virtio driver methods operate on \lstinline{buf*} objects and are
-invoked through the disk abstraction (see \texttt{kernel/block\_device.h} and
-\texttt{kernel/virtio\_driver.h}).
+In xv6++ the virtio driver methods operate on
+\lstinline{buf*}
+objects and are invoked through the disk abstraction.
 
 The cache must ensure that there is at most one cached buffer per disk block.
 This invariant ensures that readers see writes, and it is also fundamental to
@@ -194,8 +197,9 @@ file system calls; the cache panics. A more graceful response might be to sleep
 until a buffer became free, though there would then be a possibility of deadlock.
 
 When the caller is done with a buffer it calls \lstinline{relse()}.
-The release operation moves the buffer to the most-recently-used end of the LRU
-list, implementing an LRU replacement policy.
+If the release drops the buffer's reference count to zero,
+\lstinline{relse()} moves it to the tail of the cache list, where it is eligible
+for reuse by a later cache miss.
 
 %% 
 %%  -------------------------------------------
@@ -279,27 +283,33 @@ for the call’s worst-case block writes.
 %% 
 \section{Code: logging}
 
-In xv6++ the logging layer is implemented by \lstinline{class file_system_log}
-(see \texttt{kernel/file\_system\_log.h} and \texttt{kernel/file\_system\_log.cpp})
-and is available as \lstinline{kernel.log}.
+In xv6++ the logging layer is implemented by
+\lstinline{class file_system_log}
+and is available as
+\lstinline{kernel.log}.
 
 A typical use looks like:
 
 \begin{lstlisting}
-  kernel.log.begin_op();
+  log_op_guard log_guard;
   ...
-  buf *bp = kernel.cache.read(dev, blockno);
-  bp->data[...] = ...;
-  kernel.log.log_write(bp);
-  kernel.cache.relse(bp);
+  {
+    buffer_guard bp(dev, blockno);
+    bp->data[...] = ...;
+    kernel.log.log_write(bp);
+  }
   ...
-  kernel.log.end_op();
 \end{lstlisting}
+
+\lstinline{log_op_guard} calls \lstinline{begin_op()} in its constructor and
+\lstinline{end_op()} in its destructor.
 
 \lstinline{begin_op()} waits until the logging system is not currently committing,
 and until there is enough unreserved log space to hold the writes from this call.
-The log conservatively assumes that each file-system system call might write up to
-\lstinline{MAXOPBLOCKS} distinct blocks (see \texttt{kernel/param.h}).
+The log conservatively assumes that each file-system system call
+might write up to
+\lstinline{MAXOPBLOCKS}
+distinct blocks.
 
 \lstinline{log_write(bp)} acts as a proxy for writing a dirty buffer to disk. It
 records the block number in memory, reserving it a slot in the on-disk log, and pins
@@ -340,6 +350,8 @@ The block allocator provides two functions:
 \lstinline{balloc} allocates a new disk block, and \lstinline{bfree} frees a block.
 In xv6++ these are methods on \lstinline{file_system}
 (see \texttt{kernel/file\_system.h} and \texttt{kernel/file\_system.cpp}).
+\lstinline{balloc} returns zero if no free block is available; callers such as
+\lstinline{bmap()} propagate that allocation failure to higher layers.
 
 The allocator scans bitmap blocks looking for a free bit. The race that might occur if two
 processes try to allocate a block at the same time is prevented by the fact that the buffer
@@ -390,16 +402,22 @@ Separating acquisition of inode pointers from inode locking helps avoid deadlock
 %% 
 \section{Code: Inodes}
 
-To allocate a new inode (for example, when creating a file), xv6++ calls
-\lstinline{file_system::ialloc()}.
+To allocate a new inode (for example, when creating a file),
+xv6++ calls:
+\begin{lstlisting}
+file_system::ialloc()
+\end{lstlisting}
 This scans on-disk inode blocks looking for a free inode (type zero), claims it,
 writes the new type to disk, and returns the corresponding in-memory inode.
+If no free inode exists, \lstinline{ialloc()} returns \lstinline{nullptr}.
 
 \lstinline{iget()} looks in the in-memory inode cache for an existing entry with matching device and inode number.
 If it finds one, it increments the reference count and returns it. Otherwise it allocates a free cache entry.
 
-\lstinline{ilock()} acquires the inode’s sleep-lock. If the inode has not yet been read from disk,
-\lstinline{ilock()} reads the on-disk inode into the in-memory inode structure.
+\lstinline{ilock()}
+acquires the inode’s sleep-lock.
+If the inode has not yet been read from disk, it also reads
+the on-disk inode into the in-memory inode structure.
 
 \lstinline{iput()} decrements the reference count. If it drops to zero and the on-disk link count is also zero,
 the inode and its data blocks must be freed. That process truncates the file, clears the inode type on disk,
@@ -432,7 +450,9 @@ array of block addresses.
 This representation is efficient on disk but somewhat complex for clients. The method \lstinline{bmap()}
 hides the details: it maps a file’s logical block number to a disk block number, allocating blocks as needed.
 
-Truncation frees all of a file’s blocks and resets its size to zero; this is implemented by \lstinline{itrunc()}.
+Truncation frees all of a file’s blocks and resets its size to zero.
+\lstinline{itrunc()}
+implements this operation.
 
 The methods \lstinline{readi()} and \lstinline{writei()} implement reading and writing bytes of a file by
 iterating over file blocks, using \lstinline{bmap()} to locate each block, and copying bytes between user memory
@@ -488,9 +508,11 @@ Each open file is represented by \lstinline{class file} (see \texttt{kernel/file
 which wraps either an inode or a pipe, plus an I/O offset.
 Multiple processes can share the same open file object via \lstinline{fork()} or \lstinline{dup()}.
 
-All open file objects are allocated from a global table managed by \lstinline{file_manager}
-(see \texttt{kernel/file\_manager.h} and \texttt{kernel/file\_manager.cpp}).
-\lstinline{file_manager} allocates and tracks \lstinline{file} objects and pipe objects.
+All open file objects are allocated from a global table managed by
+\lstinline{file_manager}.
+It allocates and tracks both
+\lstinline{file}
+objects and pipe objects.
 
 The \lstinline{file} methods \lstinline{read()}, \lstinline{write()}, and \lstinline{stat()}
 dispatch either to pipe code or inode code, depending on the file type.
@@ -510,7 +532,7 @@ Most are straightforward wrappers that:
 (4) update reference counts and return results.
 
 Some system calls must update multiple disk structures and therefore execute within a transaction,
-using \lstinline{kernel.log.begin_op()} and \lstinline{kernel.log.end_op()}.
+using \lstinline{log_op_guard} to enter and leave the log transaction.
 For example, creating and linking directory entries, allocating inodes and blocks, and updating bitmaps
 must be crash-safe.
 
@@ -518,6 +540,8 @@ must be crash-safe.
 into its parent directory. \lstinline{link} adds a new directory entry and increments the inode’s link count.
 \lstinline{unlink} removes a directory entry and decrements the inode’s link count; if it drops to zero and
 no file descriptors reference it, the inode and its blocks will be freed.
+\lstinline{open} also handles \lstinline{O_TRUNC} for regular files and follows symbolic links.
+\lstinline{sys_symlink} creates symbolic-link inodes whose contents store the target path.
 
 \lstinline{sys_pipe} allocates a pipe and installs two file descriptors referring to its read and write ends,
 connecting the pipe implementation (Chapter~\ref{CH:SLEEP}) to the file interface.
@@ -529,7 +553,7 @@ connecting the pipe implementation (Chapter~\ref{CH:SLEEP}) to the file interfac
 
 The buffer cache in a real-world operating system is significantly more complex than xv6++'s, but it serves the
 same two purposes: caching and synchronizing access to the disk.
-Xv6++ uses a simple LRU eviction policy; many more complex policies exist.
+Xv6++ uses a simple list-based eviction policy; many more complex policies exist.
 
 Xv6++'s logging system is also intentionally simple.
 A commit cannot occur concurrently with file-system system calls.
@@ -552,30 +576,21 @@ In many systems, open files carry a table of operation function pointers rather 
 %%  -------------------------------------------
 %% 
 \section{Exercises}
+%% 
 
 \begin{enumerate}
 
-\item Why panic in \lstinline{balloc}? Can xv6++ recover?
-
-\item Why panic in \lstinline{ialloc}? Can xv6++ recover?
-
-\item Why doesn't \lstinline{file_manager} panic when it runs out of files?
-Why is this more common and therefore worth handling?
-
-\item Suppose the file corresponding to an inode gets unlinked by another process
-between incrementing \lstinline{nlink} and creating a directory entry. Will the link be created correctly?
-Why or why not?
-
-\item Implement \lstinline{lseek}. Supporting \lstinline{lseek} will also require modifying file write behavior
-to fill holes with zeros when seeking beyond end-of-file.
-
-\item Add \lstinline{O_TRUNC} and \lstinline{O_APPEND} to \lstinline{open}, so that \lstinline{>} and \lstinline{>>}
-operators work in the shell.
-
-\item Modify the file system to support symbolic links.
-
-\item Modify the file system to support named pipes.
-
-\item Modify the file system and VM system to support memory-mapped files.
+\item Add symbolic links to xv6++. A symbolic link is a file whose
+contents name another path. Add a \lstinline{symlink(target, linkpath)}
+system call that creates a new \lstinline{T_SYMLINK} inode at
+\lstinline{linkpath} and stores \lstinline{target} as the inode's
+contents. The target path need not exist when the link is created; the
+system call should fail if \lstinline{linkpath} already exists. Modify
+\lstinline{open} so that opening a symbolic link follows the target path,
+and follows chains of symbolic links up to a fixed limit to avoid cycles.
+Opening a dangling symbolic link should fail. \lstinline{link} and
+\lstinline{unlink} should operate on the path named by the caller and
+need not follow a final symbolic-link component. Verify the change by
+running \texttt{symlinktest} and \texttt{usertests -q}.
 
 \end{enumerate}
