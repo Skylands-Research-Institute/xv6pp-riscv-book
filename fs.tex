@@ -580,6 +580,14 @@ In many systems, open files carry a table of operation function pointers rather 
 
 \begin{enumerate}
 
+\item Add a \lstinline{seek(fd, offset, whence)} system call to reposition
+an open file using \lstinline{SEEK_SET}, \lstinline{SEEK_CUR}, or
+\lstinline{SEEK_END}. Allow positions from zero through the file size,
+returning \lstinline{0} on success and \lstinline{-1} on failure.
+Reject invalid descriptors, pipes, devices, and out-of-range positions,
+leaving the offset unchanged on failure. Verify the change by running
+\texttt{seektest} and \texttt{usertests -q}.
+
 \item Add symbolic links to xv6++. A symbolic link is a file whose
 contents name another path. Add a \lstinline{symlink(target, linkpath)}
 system call that creates a new \lstinline{T_SYMLINK} inode at
